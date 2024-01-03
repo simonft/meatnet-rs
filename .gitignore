@@ -1,1 +1,5 @@
 /target
+*.wasm
+.vscode
+src/dist/
+dist/
