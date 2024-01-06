@@ -3,6 +3,8 @@ use deku::ctx::Endian;
 use deku::prelude::*;
 use std::u8;
 
+pub mod uart;
+
 fn parse_raw_temperature_data(
     rest: &BitSlice<u8, Msb0>,
 ) -> Result<(&BitSlice<u8, Msb0>, [f32; 8]), DekuError> {
@@ -21,6 +23,7 @@ fn parse_raw_temperature_data(
     }
 }
 
+// TODO: Fix ordering of bits
 #[derive(Debug, PartialEq, DekuRead)]
 #[deku(endian = "little")]
 pub struct ProbeStatus {
@@ -28,17 +31,17 @@ pub struct ProbeStatus {
     pub log_end: u32,
     #[deku(reader = "parse_raw_temperature_data(deku::rest)")]
     raw_temperatures: [f32; 8],
-    pub mode: Mode,
-    pub color: Color,
     #[deku(bits = "3")]
     pub probe_id: u8,
-    pub battery_status: BatteryStatus,
-    #[deku(bits = "3")]
-    virtual_core_sensor: u8,
-    #[deku(bits = "2")]
-    virtual_surface_sensor: u8,
+    pub color: Color,
+    pub mode: Mode,
     #[deku(bits = "2", pad_bytes_after = "25")]
     virtual_ambient_sensor: u8,
+    #[deku(bits = "2")]
+    virtual_surface_sensor: u8,
+    #[deku(bits = "3")]
+    virtual_core_sensor: u8,
+    pub battery_status: BatteryStatus,
 }
 
 impl ProbeStatus {
@@ -85,4 +88,22 @@ pub enum Color {
 pub enum BatteryStatus {
     Ok = 0,
     LowBattery,
+}
+
+#[derive(Debug, PartialEq, DekuRead, DekuWrite)]
+#[deku(type = "u8")]
+pub enum ProductType {
+    Unknown = 0,
+    PredictiveProbe,
+    MeatNetRepeater,
+}
+
+#[derive(Debug, PartialEq, DekuRead, DekuWrite)]
+pub struct ProbeSerialNumber {
+    pub number: u32,
+}
+
+#[derive(Debug, PartialEq, DekuRead, DekuWrite)]
+pub struct MacAddress {
+    address: [u8; 6],
 }
