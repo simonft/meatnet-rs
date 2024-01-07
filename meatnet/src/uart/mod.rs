@@ -44,7 +44,7 @@ impl NodeMessage {
                     .expect("New message doesn't have Deku id."),
                 r.message.to_bytes().unwrap(),
             ),
-            MessageType::Response(_) => panic!("Response message not implemented."),
+            MessageType::Response(_) => panic!("Response message write not implemented."),
         };
 
         let message_type_id = message_type
@@ -54,12 +54,10 @@ impl NodeMessage {
         // CRC of message type, request ID, payload length, and payload bytes.
         // TODO: when implementing response messages, this will need to be updated:
         // CRC of message type, request ID, response ID, success, payload length, and payload bytes
-        let mut crc_data = vec![request_response_type + 128 * message_type_id];
-        crc_data.append(&mut request_id.to_le_bytes().as_slice().into());
-        crc_data.push(message_bytes.len() as u8);
-        crc_data.append(&mut message_bytes.clone());
-
-        digest.update(&crc_data);
+        digest.update(&[request_response_type + 128 * message_type_id]);
+        digest.update(request_id.to_le_bytes().as_slice());
+        digest.update(&[message_bytes.len() as u8]);
+        digest.update(&message_bytes);
 
         Self {
             crc: digest.finalize(),
@@ -69,18 +67,9 @@ impl NodeMessage {
     }
 }
 
-#[test]
-fn test_crc_algo() {
-    let binding = Crc::<u16>::new(&CRC_16_IBM_3740);
-    let mut digest = binding.digest();
-    let crc_data: Vec<u8> = vec![0x48, 101, 108, 108];
-    digest.update(crc_data.as_slice());
-    assert!(digest.finalize() == 64617);
-}
-
 // Test that NodeMessages can be converted from a request to bytes
 #[test]
-fn test_node_message_to_bytes() {
+fn test_heartbeat_message_to_bytes() {
     let heartbeat_message = request::RequestType::HeartbeatMessage(request::HeartbeatMessage {
         node_serial_number: [84, 49, 48, 48, 48, 48, 48, 51, 75, 86],
         mac_address: MacAddress {
@@ -148,7 +137,7 @@ fn test_node_message_to_bytes() {
 }
 
 #[test]
-fn test_node_message_to_bytes_simpler() {
+fn test_session_information_message_to_bytes() {
     let read_session_information =
         request::RequestType::ReadSessionInformation(request::ReadSessionInformation {
             serial_number: super::ProbeSerialNumber { number: 0x10001DED },

@@ -6,7 +6,7 @@ use crate::{parse_raw_temperature_data, ProbeSerialNumber, Temperature};
 struct SetProbeId {}
 
 #[derive(Debug, PartialEq, DekuRead)]
-struct ReadSessionInformation {
+pub struct ReadSessionInformation {
     probe_serial_number: ProbeSerialNumber,
     probe_session_id: u32,
     probe_sample_period: u16,

@@ -189,7 +189,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let (tx, rx) = mpsc::channel::<SyncMessages>();
 
     let listener = task::spawn(process_notifications(thermometer.clone(), tx));
-    let requestor = task::spawn(request_log_updates(
+    let _requestor = task::spawn(request_log_updates(
         thermometer.clone(),
         rx_characteristic,
         rx,
