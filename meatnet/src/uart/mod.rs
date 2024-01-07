@@ -5,7 +5,8 @@ use core::panic;
 
 use deku::prelude::*;
 
-use crate::{MacAddress, ProductType};
+#[cfg(test)]
+use crate::{MacAddress, ProductType, SerialNumber};
 
 use request::Request;
 use response::Response;
@@ -140,7 +141,7 @@ fn test_heartbeat_message_to_bytes() {
 fn test_session_information_message_to_bytes() {
     let read_session_information =
         request::RequestType::ReadSessionInformation(request::ReadSessionInformation {
-            serial_number: super::ProbeSerialNumber { number: 0x10001DED },
+            serial_number: SerialNumber { number: 0x10001DED },
         });
 
     let nm = NodeMessage::new(MessageType::Request(Request::new_with_id(

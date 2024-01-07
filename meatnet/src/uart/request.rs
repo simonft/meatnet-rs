@@ -1,21 +1,21 @@
 use deku::prelude::*;
 
-use crate::{MacAddress, ProbeSerialNumber, ProbeStatus, ProductType};
+use crate::{MacAddress, ProbeStatus, ProductType, SerialNumber};
 
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
-struct SetProbeId {}
+pub struct SetProbeId {}
 
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
-struct SetProbeColor {}
+pub struct SetProbeColor {}
 
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
 pub struct ReadSessionInformation {
-    pub serial_number: ProbeSerialNumber,
+    pub serial_number: SerialNumber,
 }
 
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
 pub struct ReadLogs {
-    pub probe_serial_number: ProbeSerialNumber,
+    pub probe_serial_number: SerialNumber,
     pub sequence_number_start: u32,
     pub sequence_number_end: u32,
 }
@@ -44,12 +44,12 @@ pub enum Hops {
 
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
 pub struct NetworkInformation {
-    hop_count: Hops,
+    pub hop_count: Hops,
 }
 
 #[derive(Debug, PartialEq, DekuRead)]
 pub struct ProbeStatusMessage {
-    pub probe_serial_number: ProbeSerialNumber,
+    pub probe_serial_number: SerialNumber,
     pub status: ProbeStatus,
     pub network_information: NetworkInformation,
 }
@@ -86,7 +86,7 @@ pub struct HeartbeatMessage {
 pub struct SyncThermometer {
     #[deku(bytes = "1")]
     present: bool,
-    serial_number: ProbeSerialNumber,
+    serial_number: SerialNumber,
 }
 
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
@@ -120,7 +120,7 @@ impl RequestType {
             RequestType::SetProbeColor(r) => r.to_bytes(),
             RequestType::ReadSessionInformation(r) => r.to_bytes(),
             RequestType::ReadLogs(r) => r.to_bytes(),
-            RequestType::ProbeStatusMessage(r) => {
+            RequestType::ProbeStatusMessage(_) => {
                 Err(DekuError::Unexpected("Not implimented".to_string()))
             }
             RequestType::HeartbeatMessage(r) => r.to_bytes(),

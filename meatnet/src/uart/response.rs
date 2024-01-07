@@ -1,20 +1,20 @@
 use deku::prelude::*;
 
-use crate::{parse_raw_temperature_data, ProbeSerialNumber, Temperature};
+use crate::{parse_raw_temperature_data, SerialNumber, Temperature};
 
 #[derive(Debug, PartialEq, DekuRead)]
 struct SetProbeId {}
 
 #[derive(Debug, PartialEq, DekuRead)]
 pub struct ReadSessionInformation {
-    probe_serial_number: ProbeSerialNumber,
+    probe_serial_number: SerialNumber,
     probe_session_id: u32,
     probe_sample_period: u16,
 }
 
 #[derive(Debug, PartialEq, DekuRead)]
 pub struct ReadLogs {
-    pub probe_serial_number: ProbeSerialNumber,
+    pub probe_serial_number: SerialNumber,
     pub sequence_number: u32,
     #[deku(reader = "parse_raw_temperature_data(deku::rest)")]
     pub temperatures: [Temperature; 8],

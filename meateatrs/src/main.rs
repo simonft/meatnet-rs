@@ -6,26 +6,18 @@ use std::time::Duration;
 use tokio::time::sleep;
 use uuid::Uuid;
 
-use btleplug::api::{Central, Characteristic, Manager as _, Peripheral as _, ScanFilter};
-use btleplug::platform::{Manager, Peripheral};
+use btleplug::api::{
+    Central as _, CentralEvent, Characteristic, Manager as _, Peripheral as _, ScanFilter,
+};
+use btleplug::platform::{Adapter, Manager, Peripheral, PeripheralId};
 use deku::DekuContainerWrite;
 use range_set_blaze::RangeSetBlaze;
-use tokio::{task, time};
+use tokio::task;
 
-use meatnet::{uart, ProbeSerialNumber};
-
-const PROBE_STATUS_CHARACTERISTIC_UUID: Uuid = uuid::uuid!("00000101-CAAB-3792-3D44-97AE51C1407A");
-const PROBE_STATUS_SERVICE_UUID: Uuid = uuid::uuid!("00000100-CAAB-3792-3D44-97AE51C1407A");
-const NODE_UART_UUID: Uuid = uuid::uuid!("6E400001-B5A3-F393-E0A9-E50E24DCCA9E");
-const BLUETOOTH_BASE_UUID: u128 = 0x00000000_0000_1000_8000_00805f9b34fb;
-const PROBE_STATUS_UART_SERVICE_UUID: Uuid =
-    Uuid::from_u128(BLUETOOTH_BASE_UUID | ((0x181A as u128) << 96));
+use meatnet::{uart, ManufacturerSpecificData, ProductType, SerialNumber};
 
 const UART_RX_CHARACTERISTIC_UUID: Uuid = uuid::uuid!("6E400002-B5A3-F393-E0A9-E50E24DCCA9E");
 const UART_TX_CHARACTERISTIC_UUID: Uuid = uuid::uuid!("6E400003-B5A3-F393-E0A9-E50E24DCCA9E");
-
-const PROBE_MAC_ADDRESS: &str = "C2:71:04:91:14:D0";
-const NODE_MAC_ADDRESS: &str = "C1:88:0B:CA:6E:81";
 
 enum SyncMessages {
     LogRangeAvailble(u32, u32),
@@ -110,10 +102,10 @@ async fn request_log_updates(
 
             for mut range in missing_logs.ranges() {
                 while !range.is_empty() {
-                    let start = range.start().clone();
+                    let start = *range.start();
                     let end = range.nth(num_request_concurrent).unwrap_or(*range.end());
                     let read_logs = uart::request::RequestType::ReadLogs(uart::request::ReadLogs {
-                        probe_serial_number: ProbeSerialNumber { number: 0x10001DED },
+                        probe_serial_number: SerialNumber { number: 0x10001DED },
                         sequence_number_start: start,
                         sequence_number_end: end,
                     });
@@ -140,6 +132,59 @@ async fn request_log_updates(
     }
 }
 
+async fn find_combustion_device(
+    central: &Adapter,
+    product_type: Option<ProductType>,
+) -> Option<PeripheralId> {
+    // Each adapter has an event stream, we fetch via events(),
+    // simplifying the type, this will return what is essentially a
+    // Future<Result<Stream<Item=CentralEvent>>>.
+    let mut events = central.events().await.expect("Could not get events");
+
+    // start scanning for devices
+    central
+        .start_scan(ScanFilter::default())
+        .await
+        .expect("can't start scan");
+
+    // Keep scanning until we find a the Combustion device type we want
+    while let Some(event) = events.next().await {
+        if let CentralEvent::ManufacturerDataAdvertisement {
+            id,
+            manufacturer_data,
+        } = event
+        {
+            for (key, value) in &manufacturer_data {
+                if *key == 0x09C7 {
+                    println!("Found Combustion device: {:?}", id);
+                    let mut magic: Vec<u8> = vec![0x09, 0xC7];
+                    magic.append(&mut value.clone());
+
+                    match ManufacturerSpecificData::try_from(magic.as_slice()) {
+                        Ok(data) => {
+                            match product_type {
+                                Some(ref pt) => {
+                                    if data.product_type == *pt {
+                                        return Some(id);
+                                    };
+                                }
+                                None => {
+                                    return Some(id);
+                                }
+                            };
+                        }
+                        Err(e) => println!(
+                            "Expected to be able to parse ManufacturerSpecificData but can't: {}",
+                            e
+                        ),
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let manager = Manager::new().await.unwrap();
@@ -153,19 +198,14 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .next()
         .expect("Unable to find adapters.");
 
-    // start scanning for devices
-    central.start_scan(ScanFilter::default()).await?;
-    // instead of waiting, you can use central.events() to get a stream which will
-    // notify you of new devices, for an example of that see examples/event_driven_discovery.rs
-    time::sleep(time::Duration::from_secs(5)).await;
-    let maybe_thermometer = central
-        .peripherals()
+    let thermometer = central
+        .peripheral(
+            &find_combustion_device(&central, Some(ProductType::MeatNetRepeater))
+                .await
+                .unwrap(),
+        )
         .await
-        .unwrap()
-        .into_iter()
-        .find(|p| p.address().to_string() == *NODE_MAC_ADDRESS);
-
-    let thermometer = maybe_thermometer.unwrap();
+        .unwrap();
 
     thermometer.connect().await?;
     thermometer.discover_services().await?;
@@ -183,8 +223,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .find(|c| c.uuid == UART_RX_CHARACTERISTIC_UUID)
         .expect("Unable to find rx characteristic")
         .clone();
-
-    println!("here");
 
     let (tx, rx) = mpsc::channel::<SyncMessages>();
 
