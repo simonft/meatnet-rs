@@ -12,8 +12,7 @@ use deku::DekuContainerWrite;
 use range_set_blaze::RangeSetBlaze;
 use tokio::{task, time};
 
-use crate::types::uart;
-use meatnet_rs::types;
+use meatnet::{uart, ProbeSerialNumber};
 
 const PROBE_STATUS_CHARACTERISTIC_UUID: Uuid = uuid::uuid!("00000101-CAAB-3792-3D44-97AE51C1407A");
 const PROBE_STATUS_SERVICE_UUID: Uuid = uuid::uuid!("00000100-CAAB-3792-3D44-97AE51C1407A");
@@ -114,7 +113,7 @@ async fn request_log_updates(
                     let start = range.start().clone();
                     let end = range.nth(num_request_concurrent).unwrap_or(*range.end());
                     let read_logs = uart::request::RequestType::ReadLogs(uart::request::ReadLogs {
-                        probe_serial_number: types::ProbeSerialNumber { number: 0x10001DED },
+                        probe_serial_number: ProbeSerialNumber { number: 0x10001DED },
                         sequence_number_start: start,
                         sequence_number_end: end,
                     });

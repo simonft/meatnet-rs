@@ -1,6 +1,6 @@
 use deku::prelude::*;
 
-use crate::types::{parse_raw_temperature_data, ProbeSerialNumber};
+use crate::{parse_raw_temperature_data, ProbeSerialNumber};
 
 #[derive(Debug, PartialEq, DekuRead)]
 struct SetProbeId {}

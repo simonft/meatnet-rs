@@ -5,9 +5,8 @@ use core::panic;
 
 use deku::prelude::*;
 
-use crate::types::MacAddress;
+use crate::{MacAddress, ProductType};
 
-use super::ProductType;
 use request::Request;
 use response::Response;
 

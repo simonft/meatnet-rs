@@ -1,9 +1,9 @@
+pub mod uart;
+
 use bitvec::prelude::*;
 use deku::ctx::Endian;
 use deku::prelude::*;
 use std::u8;
-
-pub mod uart;
 
 fn parse_raw_temperature_data(
     rest: &BitSlice<u8, Msb0>,
@@ -105,5 +105,5 @@ pub struct ProbeSerialNumber {
 
 #[derive(Debug, PartialEq, DekuRead, DekuWrite)]
 pub struct MacAddress {
-    address: [u8; 6],
+    pub address: [u8; 6],
 }

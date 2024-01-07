@@ -1,6 +1,6 @@
 use deku::prelude::*;
 
-use crate::types::{MacAddress, ProbeSerialNumber, ProbeStatus, ProductType};
+use crate::{MacAddress, ProbeSerialNumber, ProbeStatus, ProductType};
 
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
 struct SetProbeId {}
