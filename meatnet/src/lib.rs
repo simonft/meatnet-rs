@@ -5,15 +5,37 @@ use deku::ctx::Endian;
 use deku::prelude::*;
 use std::u8;
 
+#[cfg(test)]
+use pretty_assertions::assert_eq;
+
+#[derive(Debug, PartialEq, DekuRead)]
+pub struct Temperature {
+    raw_value: u16,
+}
+
+impl Temperature {
+    pub fn new(raw_value: u16) -> Self {
+        Temperature { raw_value }
+    }
+
+    pub fn get_celsius(&self) -> f32 {
+        (self.raw_value as f32 * 0.05) - 20.0
+    }
+
+    pub fn get_fahrenheit(&self) -> f32 {
+        (self.get_celsius() * 9.0 / 5.0) + 32.0
+    }
+}
+
 fn parse_raw_temperature_data(
     rest: &BitSlice<u8, Msb0>,
-) -> Result<(&BitSlice<u8, Msb0>, [f32; 8]), DekuError> {
+) -> Result<(&BitSlice<u8, Msb0>, [Temperature; 8]), DekuError> {
     let (rest, bytes) = <[u8; 13]>::read(rest, ())?;
     match bytes
         .into_bitarray::<Lsb0>()
         .chunks(13)
-        .map(|chunk| (chunk.load_le::<u16>() as f32 * 0.05) - 20.0)
-        .collect::<Vec<f32>>()
+        .map(|chunk| (Temperature::new(chunk.load_le())))
+        .collect::<Vec<Temperature>>()
         .try_into()
     {
         Ok(raw_temperatures) => Ok((rest, raw_temperatures)),
@@ -29,7 +51,7 @@ pub struct ProbeStatus {
     pub log_start: u32,
     pub log_end: u32,
     #[deku(reader = "parse_raw_temperature_data(deku::rest)")]
-    raw_temperatures: [f32; 8],
+    raw_temperatures: [Temperature; 8],
     #[deku(bits = "3")]
     pub probe_id: u8,
     pub color: Color,
@@ -44,16 +66,16 @@ pub struct ProbeStatus {
 }
 
 impl ProbeStatus {
-    pub fn get_core_temperature(&self) -> f32 {
-        self.raw_temperatures[self.virtual_core_sensor as usize]
+    pub fn get_core_temperature(&self) -> &Temperature {
+        &self.raw_temperatures[self.virtual_core_sensor as usize]
     }
 
-    pub fn get_surface_temperature(&self) -> f32 {
-        self.raw_temperatures[self.virtual_surface_sensor as usize + 3]
+    pub fn get_surface_temperature(&self) -> &Temperature {
+        &self.raw_temperatures[self.virtual_surface_sensor as usize + 3]
     }
 
-    pub fn get_ambient_temperature(&self) -> f32 {
-        self.raw_temperatures[self.virtual_ambient_sensor as usize + 4]
+    pub fn get_ambient_temperature(&self) -> &Temperature {
+        &self.raw_temperatures[self.virtual_ambient_sensor as usize + 4]
     }
 }
 
@@ -105,4 +127,41 @@ pub struct ProbeSerialNumber {
 #[derive(Debug, PartialEq, DekuRead, DekuWrite)]
 pub struct MacAddress {
     pub address: [u8; 6],
+}
+
+// test ProbeStatus
+#[test]
+fn test_probe_status() {
+    let data = [
+        0x00, 0x00, 0x00, 0x00, 0x63, 0x00, 0x00, 0x00, 0x4a, 0x63, 0x69, 0x2c, 0x8d, 0xa5, 0x31,
+        0x35, 0xaa, 0x46, 0xd5, 0xc0, 0x1a, 0x00, 0xc0, 0x00, 0x00, 0x00, 0xf0, 0xff, 0xbf, 0x34,
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+        0x00, 0x00, 0x00, 0x00,
+    ];
+
+    let (_, probe_status) = ProbeStatus::from_bytes((&data, 0)).unwrap();
+    assert_eq!(
+        probe_status,
+        ProbeStatus {
+            log_start: 0,
+            log_end: 99,
+            raw_temperatures: [
+                Temperature::new(842),
+                Temperature::new(843),
+                Temperature::new(843),
+                Temperature::new(843),
+                Temperature::new(851),
+                Temperature::new(853),
+                Temperature::new(853),
+                Temperature::new(856),
+            ],
+            probe_id: 0,
+            color: Color::Yellow,
+            mode: Mode::Normal,
+            virtual_ambient_sensor: 3,
+            virtual_surface_sensor: 0,
+            virtual_core_sensor: 0,
+            battery_status: BatteryStatus::Ok,
+        }
+    );
 }

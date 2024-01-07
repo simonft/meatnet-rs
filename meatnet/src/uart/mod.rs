@@ -51,6 +51,9 @@ impl NodeMessage {
             .deku_id()
             .expect("New message doesn't have Deku id.");
 
+        // CRC of message type, request ID, payload length, and payload bytes.
+        // TODO: when implementing response messages, this will need to be updated:
+        // CRC of message type, request ID, response ID, success, payload length, and payload bytes
         let mut crc_data = vec![request_response_type + 128 * message_type_id];
         crc_data.append(&mut request_id.to_le_bytes().as_slice().into());
         crc_data.push(message_bytes.len() as u8);
@@ -58,25 +61,10 @@ impl NodeMessage {
 
         digest.update(&crc_data);
 
-        // CRC of message type, request ID, payload length, and payload bytes.
-        // TODO: when implementing response messages, this will need to be updated:
-        // CRC of message type, request ID, response ID, success, payload length, and payload bytes
-        // digest.update(&[request_response_type + 128 * message_type_id]);
-        // digest.update(&request_id.to_le_bytes());
-        // digest.update(&[message_bytes.len() as u8]);
-        // digest.update(&message_bytes);
-
         Self {
             crc: digest.finalize(),
             message_type_id,
             message_type,
-        }
-    }
-
-    fn get_request_id(&self) -> u32 {
-        match &self.message_type {
-            MessageType::Request(r) => r.request_id,
-            MessageType::Response(_) => panic!("Response message not implemented."),
         }
     }
 }
