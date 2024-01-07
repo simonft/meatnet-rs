@@ -28,9 +28,9 @@ impl Temperature {
 }
 
 fn parse_raw_temperature_data(
-    rest: &BitSlice<u8, Msb0>,
+    input: &BitSlice<u8, Msb0>,
 ) -> Result<(&BitSlice<u8, Msb0>, [Temperature; 8]), DekuError> {
-    let (rest, bytes) = <[u8; 13]>::read(rest, ())?;
+    let (rest, bytes) = <[u8; 13]>::read(input, ())?;
     match bytes
         .into_bitarray::<Lsb0>()
         .chunks(13)
@@ -129,7 +129,32 @@ pub struct MacAddress {
     pub address: [u8; 6],
 }
 
-// test ProbeStatus
+#[test]
+fn test_parse_raw_temperature_data() {
+    let data = [
+        0x4a, 0x63, 0x69, 0x2c, 0x8d, 0xa5, 0x31, 0x35, 0xaa, 0x46, 0xd5, 0xc0, 0x1a,
+    ];
+
+    let (rest, raw_temperatures) = match parse_raw_temperature_data(BitSlice::from_slice(&data)) {
+        Ok((rest, raw_temperatures)) => (rest, raw_temperatures),
+        Err(e) => panic!("Error: {}", e),
+    };
+    assert_eq!(
+        raw_temperatures,
+        [
+            Temperature::new(842),
+            Temperature::new(843),
+            Temperature::new(843),
+            Temperature::new(843),
+            Temperature::new(851),
+            Temperature::new(853),
+            Temperature::new(853),
+            Temperature::new(856),
+        ]
+    );
+    assert_eq!(rest.len(), 0);
+}
+
 #[test]
 fn test_probe_status() {
     let data = [
