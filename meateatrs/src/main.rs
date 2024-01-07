@@ -49,7 +49,7 @@ async fn process_notifications(thermometer: Peripheral, tx: mpsc::Sender<SyncMes
                             .entry(m.probe_serial_number.number)
                             .or_insert(HashMap::new())
                             .entry(m.sequence_number)
-                            .or_insert(m.raw_temperatures);
+                            .or_insert(m.temperatures);
                         tx.send(SyncMessages::LogRecieved(m.sequence_number))
                             .unwrap();
                         if m.sequence_number % 10 == 0 {

@@ -51,7 +51,7 @@ pub struct ProbeStatus {
     pub log_start: u32,
     pub log_end: u32,
     #[deku(reader = "parse_raw_temperature_data(deku::rest)")]
-    raw_temperatures: [Temperature; 8],
+    temperatures: [Temperature; 8],
     #[deku(bits = "3")]
     pub probe_id: u8,
     pub color: Color,
@@ -67,15 +67,15 @@ pub struct ProbeStatus {
 
 impl ProbeStatus {
     pub fn get_core_temperature(&self) -> &Temperature {
-        &self.raw_temperatures[self.virtual_core_sensor as usize]
+        &self.temperatures[self.virtual_core_sensor as usize]
     }
 
     pub fn get_surface_temperature(&self) -> &Temperature {
-        &self.raw_temperatures[self.virtual_surface_sensor as usize + 3]
+        &self.temperatures[self.virtual_surface_sensor as usize + 3]
     }
 
     pub fn get_ambient_temperature(&self) -> &Temperature {
-        &self.raw_temperatures[self.virtual_ambient_sensor as usize + 4]
+        &self.temperatures[self.virtual_ambient_sensor as usize + 4]
     }
 }
 
@@ -170,7 +170,7 @@ fn test_probe_status() {
         ProbeStatus {
             log_start: 0,
             log_end: 99,
-            raw_temperatures: [
+            temperatures: [
                 Temperature::new(842),
                 Temperature::new(843),
                 Temperature::new(843),
