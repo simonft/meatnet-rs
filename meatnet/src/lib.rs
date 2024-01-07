@@ -23,7 +23,6 @@ fn parse_raw_temperature_data(
     }
 }
 
-// TODO: Fix ordering of bits
 #[derive(Debug, PartialEq, DekuRead)]
 #[deku(endian = "little")]
 pub struct ProbeStatus {
