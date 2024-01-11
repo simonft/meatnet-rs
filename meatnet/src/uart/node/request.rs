@@ -1,6 +1,6 @@
 use deku::prelude::*;
 
-use crate::{MacAddress, ProbeStatus, ProductType, SerialNumber};
+use crate::{MacAddress, NetworkInformation, ProbeStatus, ProductType, SerialNumber};
 
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
 pub struct SetProbeId {}
@@ -31,20 +31,6 @@ pub enum Direction {
 pub struct Attributes {
     #[deku(bits = "1", pad_bits_before = "7")]
     pub connection_detail_record_is_populated: bool,
-}
-
-#[derive(Debug, PartialEq, DekuWrite, DekuRead)]
-#[deku(type = "u8")]
-pub enum Hops {
-    One = 0,
-    Two,
-    Three,
-    Four,
-}
-
-#[derive(Debug, PartialEq, DekuWrite, DekuRead)]
-pub struct NetworkInformation {
-    pub hop_count: Hops,
 }
 
 #[derive(Debug, PartialEq, DekuRead)]

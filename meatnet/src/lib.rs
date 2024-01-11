@@ -3,10 +3,6 @@ pub mod uart;
 use bitvec::prelude::*;
 use deku::prelude::*;
 use std::u8;
-use uart::request::NetworkInformation;
-
-#[cfg(test)]
-use crate::uart::request::Hops;
 
 #[cfg(test)]
 use pretty_assertions::assert_eq;
@@ -14,6 +10,20 @@ use pretty_assertions::assert_eq;
 #[derive(Debug, PartialEq, DekuRead)]
 pub struct Temperature {
     raw_value: u16,
+}
+
+#[derive(Debug, PartialEq, DekuWrite, DekuRead)]
+#[deku(type = "u8")]
+pub enum Hops {
+    One = 0,
+    Two,
+    Three,
+    Four,
+}
+
+#[derive(Debug, PartialEq, DekuWrite, DekuRead)]
+pub struct NetworkInformation {
+    pub hop_count: Hops,
 }
 
 #[derive(Debug, PartialEq, DekuRead)]
