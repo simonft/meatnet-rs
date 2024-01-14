@@ -1,3 +1,4 @@
+use crc::{Crc, CRC_16_IBM_3740};
 use deku::prelude::*;
 
 use crate::{MacAddress, NetworkInformation, ProbeStatus, ProductType, SerialNumber};
@@ -83,7 +84,7 @@ pub struct SyncThermometerList {
 
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
 #[deku(ctx = "request_type: u8", id = "request_type")]
-pub enum RequestType {
+pub enum RequestMessage {
     #[deku(id = "0x01")]
     SetProbeId(SetProbeId),
     #[deku(id = "0x02")]
@@ -99,44 +100,154 @@ pub enum RequestType {
     #[deku(id = "0x4b")]
     SyncThermometerList(SyncThermometerList),
 }
-impl RequestType {
+impl RequestMessage {
     pub fn to_bytes(&self) -> Result<Vec<u8>, DekuError> {
         match self {
-            RequestType::SetProbeId(r) => r.to_bytes(),
-            RequestType::SetProbeColor(r) => r.to_bytes(),
-            RequestType::ReadSessionInformation(r) => r.to_bytes(),
-            RequestType::ReadLogs(r) => r.to_bytes(),
-            RequestType::ProbeStatusMessage(_) => {
+            RequestMessage::SetProbeId(r) => r.to_bytes(),
+            RequestMessage::SetProbeColor(r) => r.to_bytes(),
+            RequestMessage::ReadSessionInformation(r) => r.to_bytes(),
+            RequestMessage::ReadLogs(r) => r.to_bytes(),
+            RequestMessage::ProbeStatusMessage(_) => {
                 Err(DekuError::Unexpected("Not implimented".to_string()))
             }
-            RequestType::HeartbeatMessage(r) => r.to_bytes(),
-            RequestType::SyncThermometerList(r) => r.to_bytes(),
+            RequestMessage::HeartbeatMessage(r) => r.to_bytes(),
+            RequestMessage::SyncThermometerList(r) => r.to_bytes(),
         }
     }
 }
 
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
-pub struct Request {
-    #[deku(bits = "7")]
-    pub request_type: u8,
+#[deku(magic = b"\xca\xfe")]
+pub struct RequestHeader {
+    crc: u16,
+    #[deku(assert = "*request_type >> 7 == 0")]
+    request_type: u8,
     #[deku(endian = "little")]
     pub request_id: u32,
     payload_length: u8,
-    #[deku(ctx = "*request_type")]
-    pub message: RequestType,
+}
+
+#[derive(Debug, PartialEq, DekuWrite, DekuRead)]
+pub struct Request {
+    pub request_header: RequestHeader,
+    #[deku(ctx = "request_header.request_type")]
+    pub message: RequestMessage,
 }
 
 impl Request {
-    pub fn new(message: RequestType) -> Self {
+    pub fn new(message: RequestMessage) -> Self {
         Request::new_with_id(message, rand::random())
     }
 
-    pub fn new_with_id(message: RequestType, request_id: u32) -> Self {
-        Self {
-            request_type: message.deku_id().unwrap(),
+    fn new_with_id(message: RequestMessage, request_id: u32) -> Self {
+        let binding = Crc::<u16>::new(&CRC_16_IBM_3740);
+        let mut digest = binding.digest();
+
+        let message_type_id = message
+            .deku_id()
+            .expect("New message doesn't have Deku id.");
+
+        let message_bytes = message.to_bytes().unwrap();
+
+        // CRC of message type, request ID, payload length, and payload bytes.
+        // TODO: when implementing response messages, this will need to be updated:
+        // CRC of message type, request ID, response ID, success, payload length, and payload bytes
+        digest.update(&[message_type_id]);
+        digest.update(request_id.to_le_bytes().as_slice());
+        digest.update(&[message_bytes.len() as u8]);
+        digest.update(&message_bytes);
+
+        let request_header = RequestHeader {
+            crc: digest.finalize(),
+            request_type: message_type_id,
+            payload_length: message_bytes.len() as u8,
             request_id,
-            payload_length: message.to_bytes().unwrap().len() as u8,
+        };
+
+        Self {
+            request_header,
             message,
         }
     }
+}
+
+// Test that NodeMessages can be converted from a request to bytes
+#[test]
+fn test_heartbeat_message_to_bytes() {
+    let heartbeat_message = RequestMessage::HeartbeatMessage(HeartbeatMessage {
+        node_serial_number: [84, 49, 48, 48, 48, 48, 48, 51, 75, 86],
+        mac_address: MacAddress {
+            address: [0xc1, 0x88, 0x0b, 0xca, 0x6e, 0x81],
+        },
+        product_type: ProductType::MeatNetRepeater,
+        hop_count: 0,
+        is_inbound: Direction::Inbound,
+        connection_details: [
+            ConnectionDetailRecord {
+                serial_number: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                product_type: ProductType::Unknown,
+                attributes: Attributes {
+                    connection_detail_record_is_populated: false,
+                },
+                rssi: 0,
+            },
+            ConnectionDetailRecord {
+                serial_number: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                product_type: ProductType::MeatNetRepeater,
+                attributes: Attributes {
+                    connection_detail_record_is_populated: true,
+                },
+                rssi: 199,
+            },
+            ConnectionDetailRecord {
+                serial_number: [57, 15, 2, 0, 0, 0, 0, 0, 0, 0],
+                product_type: ProductType::MeatNetRepeater,
+                attributes: Attributes {
+                    connection_detail_record_is_populated: true,
+                },
+                rssi: 211,
+            },
+            ConnectionDetailRecord {
+                serial_number: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                product_type: ProductType::Unknown,
+                attributes: Attributes {
+                    connection_detail_record_is_populated: false,
+                },
+                rssi: 0,
+            },
+        ],
+    });
+
+    let nm = Request::new_with_id(heartbeat_message, 0xa850cd42);
+    nm.to_bytes()
+        .unwrap()
+        .iter()
+        .for_each(|b| print!("{:02x} ", b));
+
+    assert_eq!(
+        nm.to_bytes().unwrap(),
+        vec![
+            0xca, 0xfe, 0x76, 0x44, 0x49, 0x42, 0xcd, 0x50, 0xa8, 0x47, 0x54, 0x31, 0x30, 0x30,
+            0x30, 0x30, 0x30, 0x33, 0x4b, 0x56, 0xc1, 0x88, 0x0b, 0xca, 0x6e, 0x81, 0x02, 0x00,
+            0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x01, 0xc7, 0x39,
+            0x0f, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x01, 0xd3, 0x00, 0x00,
+            0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+        ]
+    );
+}
+
+#[test]
+fn test_session_information_message_to_bytes() {
+    let read_session_information = RequestMessage::ReadSessionInformation(ReadSessionInformation {
+        serial_number: SerialNumber { number: 0x10001DED },
+    });
+
+    let nm = Request::new_with_id(read_session_information, 0xa850cd42);
+
+    let expected = vec![
+        0xca, 0xfe, 0xe9, 0xb5, 0x03, 0x42, 0xcd, 0x50, 0xa8, 0x04, 0xed, 0x1d, 0x00, 0x10,
+    ];
+
+    assert_eq!(nm.to_bytes().unwrap(), expected)
 }

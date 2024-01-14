@@ -5,7 +5,17 @@ use btleplug::{
 };
 use deku::DekuContainerWrite as _;
 use futures::{Future, StreamExt as _};
-use meatnet::{uart, SerialNumber};
+use meatnet::{
+    uart::{
+        self,
+        node::{
+            request::{self, Request},
+            response::ResponseMessage,
+            MessageType,
+        },
+    },
+    SerialNumber,
+};
 use range_set_blaze::RangeSetBlaze;
 use std::{
     collections::{BTreeMap, HashMap},
@@ -16,6 +26,7 @@ use tokio::sync::broadcast::{channel, Receiver, Sender};
 use tokio::time::sleep;
 
 use crate::combustion_device::{CombustionDevice, SyncMessages};
+use meatnet::uart::node::request::RequestMessage;
 
 pub struct Node {
     peripheral_id: PeripheralId,
@@ -70,10 +81,10 @@ impl CombustionDevice for Node {
                 .expect("Unable to get notifications.");
             // Process while the BLE connection is not broken or stopped.
             while let Some(data) = notification_stream.next().await {
-                match uart::node::Message::try_from(data.value.as_slice()) {
-                    Ok(message) => match message.message_type {
-                        uart::node::MessageType::Response(r) => match r.message {
-                            uart::node::response::ResponseMessage::ReadLogs(m) => {
+                match uart::node::try_request_or_response_from(data.value.as_slice()) {
+                    Ok(message) => match message {
+                        MessageType::Response(r) => match r.message {
+                            ResponseMessage::ReadLogs(m) => {
                                 history
                                     .entry(m.probe_serial_number.number)
                                     .or_insert(BTreeMap::new())
@@ -88,9 +99,9 @@ impl CombustionDevice for Node {
                             _ => println!("Response: {:#?}", r),
                         },
                         uart::node::MessageType::Request(r) => match r.message {
-                            uart::node::request::RequestType::HeartbeatMessage(_) => {}
-                            uart::node::request::RequestType::SyncThermometerList(_) => {}
-                            uart::node::request::RequestType::ProbeStatusMessage(m) => {
+                            RequestMessage::HeartbeatMessage(_) => {}
+                            RequestMessage::SyncThermometerList(_) => {}
+                            RequestMessage::ProbeStatusMessage(m) => {
                                 self.messages_tx.send(SyncMessages::LogRangeAvailble(
                                     m.status.log_start,
                                     m.status.log_end,
@@ -156,19 +167,15 @@ impl CombustionDevice for Node {
                                 .nth(num_request_concurrent - 1)
                                 .unwrap_or(*range.end());
 
-                            let read_logs = uart::node::request::RequestType::ReadLogs(
-                                uart::node::request::ReadLogs {
-                                    probe_serial_number: SerialNumber { number: 0x10001DED },
-                                    sequence_number_start: start,
-                                    sequence_number_end: end,
-                                },
-                            );
+                            let read_logs = RequestMessage::ReadLogs(request::ReadLogs {
+                                probe_serial_number: SerialNumber { number: 0x10001DED },
+                                sequence_number_start: start,
+                                sequence_number_end: end,
+                            });
 
-                            let data = uart::node::Message::new(uart::node::MessageType::Request(
-                                uart::node::request::Request::new(read_logs),
-                            ))
-                            .to_bytes()
-                            .expect("Could not create ReadLogs message");
+                            let data = Request::new(read_logs)
+                                .to_bytes()
+                                .expect("Could not create ReadLogs message");
 
                             match thermometer
                                 .write(
