@@ -1,16 +1,13 @@
+pub mod temperature;
 pub mod uart;
 
 use bitvec::prelude::*;
 use deku::prelude::*;
 use std::u8;
+use temperature::Temperature;
 
 #[cfg(test)]
 use pretty_assertions::assert_eq;
-
-#[derive(Debug, PartialEq, DekuRead)]
-pub struct Temperature {
-    raw_value: u16,
-}
 
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
 #[deku(type = "u8")]
@@ -19,6 +16,45 @@ pub enum Hops {
     Two,
     Three,
     Four,
+}
+
+#[derive(Debug, PartialEq, DekuWrite, DekuRead)]
+#[deku(bits = "2", type = "u8")]
+pub enum PredictionMode {
+    None = 0,
+    TimeToRemoval,
+    RemovalAndResting,
+    Reserved,
+}
+
+#[derive(Debug, PartialEq, DekuWrite, DekuRead)]
+#[deku(bits = "2", type = "u8")]
+pub enum PredictionType {
+    None = 0,
+    Removal,
+    Resting,
+    Reserved,
+}
+
+#[derive(Debug, PartialEq, DekuWrite, DekuRead)]
+#[deku(bits = "4", type = "u8")]
+pub enum PredictionState {
+    ProbeNotInserted = 0,
+    ProbeInserted,
+    Warming,
+    Predicting,
+    RemovalPredictionDone,
+    ReservedState5,
+    ReservedState6,
+    ReservedState7,
+    ReservedState8,
+    ReservedState9,
+    ReservedState10,
+    ReservedState11,
+    ReservedState12,
+    ReservedState13,
+    ReservedState14,
+    Unknown,
 }
 
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
@@ -66,20 +102,6 @@ impl ManufacturerSpecificData {
 
     pub fn get_ambient_temperature(&self) -> &Temperature {
         &self.temperatures[self.virtual_ambient_sensor as usize + 4]
-    }
-}
-
-impl Temperature {
-    pub fn new(raw_value: u16) -> Self {
-        Temperature { raw_value }
-    }
-
-    pub fn get_celsius(&self) -> f32 {
-        (self.raw_value as f32 * 0.05) - 20.0
-    }
-
-    pub fn get_fahrenheit(&self) -> f32 {
-        (self.get_celsius() * 9.0 / 5.0) + 32.0
     }
 }
 

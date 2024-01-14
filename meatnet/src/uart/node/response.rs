@@ -1,6 +1,9 @@
 use deku::prelude::*;
 
-use crate::{parse_raw_temperature_data, SerialNumber, Temperature};
+use crate::SerialNumber;
+
+mod readlogs;
+pub use readlogs::ReadLogs;
 
 #[derive(Debug, PartialEq, DekuRead)]
 struct SetProbeId {}
@@ -10,15 +13,6 @@ pub struct ReadSessionInformation {
     probe_serial_number: SerialNumber,
     probe_session_id: u32,
     probe_sample_period: u16,
-}
-
-#[derive(Debug, PartialEq, DekuRead)]
-pub struct ReadLogs {
-    pub probe_serial_number: SerialNumber,
-    pub sequence_number: u32,
-    #[deku(reader = "parse_raw_temperature_data(deku::rest)")]
-    pub temperatures: [Temperature; 8],
-    pub virtual_sensors_and_state: [u8; 7],
 }
 
 #[derive(Debug, PartialEq, DekuRead)]
@@ -65,7 +59,7 @@ impl DekuWrite for Response {
 
 #[test]
 fn test_wont_parse_request() {
-    let expected = vec![
+    let data = vec![
         0xca, 0xfe, 0xe9, 0xb5, 0x03, 0x42, 0xcd, 0x50, 0xa8, 0x04, 0xed, 0x1d, 0x00, 0x10,
     ];
 
@@ -73,6 +67,6 @@ fn test_wont_parse_request() {
         Err(DekuError::Assertion(
             "ResponseHeader.response_type field failed assertion: * response_type >> 7 == 1".into()
         )),
-        Response::from_bytes((expected.as_slice(), 0))
+        Response::from_bytes((data.as_slice(), 0))
     )
 }
