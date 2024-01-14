@@ -12,7 +12,7 @@ mod probe;
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
     let matches = Command::new("meateatrs")
-        .version("1.0")
+        .version("0.1")
         .arg(arg!(--probe "Sets the product type to PredictiveProbe"))
         .arg(arg!(--node "Sets the product type to MeatNetRepeater"))
         .group(
