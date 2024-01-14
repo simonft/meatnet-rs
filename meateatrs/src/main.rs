@@ -1,4 +1,5 @@
 use btleplug::{api::Manager as _, platform::Manager};
+use clap::{arg, ArgGroup, Command, Id};
 use std::{error::Error, sync::Arc};
 use tokio::task;
 
@@ -10,7 +11,26 @@ mod probe;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let device_type = ProductType::MeatNetRepeater;
+    let matches = Command::new("meateatrs")
+        .version("1.0")
+        .arg(arg!(--probe "Sets the product type to PredictiveProbe"))
+        .arg(arg!(--node "Sets the product type to MeatNetRepeater"))
+        .group(
+            ArgGroup::new("device-type")
+                .args(["probe", "node"])
+                .multiple(false)
+                .required(false),
+        )
+        .get_matches();
+
+    let device_type = match matches.get_one::<Id>("device-type") {
+        Some(device_type) => match device_type.as_str() {
+            "probe" => Some(&ProductType::PredictiveProbe),
+            "node" => Some(&ProductType::MeatNetRepeater),
+            _ => panic!("Invalid device type"),
+        },
+        _ => None,
+    };
 
     let manager = Manager::new().await.unwrap();
 
@@ -23,7 +43,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         .next()
         .expect("Unable to find adapters.");
 
-    let mut device = combustion_device::find_combustion_device(&central, Some(&device_type))
+    let mut device = combustion_device::find_combustion_device(&central, device_type)
         .await
         .expect("Unable to find device.");
 

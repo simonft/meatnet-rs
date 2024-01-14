@@ -166,7 +166,7 @@ pub enum BatteryStatus {
     LowBattery,
 }
 
-#[derive(Debug, PartialEq, DekuRead, DekuWrite)]
+#[derive(Debug, PartialEq, DekuRead, DekuWrite, Clone)]
 #[deku(type = "u8")]
 pub enum ProductType {
     Unknown = 0,
