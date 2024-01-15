@@ -11,9 +11,6 @@ use web_sys::{
 
 const NODE_UART_UUID: Uuid = uuid::uuid!("6E400001-B5A3-F393-E0A9-E50E24DCCA9E");
 
-const UART_RX_CHARACTERISTIC_UUID: Uuid = uuid::uuid!("6E400002-B5A3-F393-E0A9-E50E24DCCA9E");
-const UART_TX_CHARACTERISTIC_UUID: Uuid = uuid::uuid!("6E400003-B5A3-F393-E0A9-E50E24DCCA9E");
-
 use meatnet::{
     temperature::IsTemperature,
     uart::node::{
@@ -94,7 +91,10 @@ pub fn process_bluetooth_event(
                 _ => logging::log!("{:#?}", r),
             },
         },
-        Err(e) => logging::log!("error: {}", e),
+        Err(e) => {
+            logging::log!("{:02x?}", vec_data);
+            logging::log!("error: {}", e);
+        }
     }
 }
 
@@ -214,8 +214,6 @@ pub async fn get_characteristics_and_listeners_from_service(
     wasm_bindgen_futures::JsFuture::from(tx_characteristic.start_notifications())
         .await
         .unwrap();
-
-    logging::log!("{:#?}", "finished connecting");
 
     listener_func.forget();
 

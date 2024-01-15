@@ -10,9 +10,9 @@ struct SetProbeId {}
 
 #[derive(Debug, PartialEq, DekuRead)]
 pub struct ReadSessionInformation {
-    probe_serial_number: SerialNumber,
-    probe_session_id: u32,
-    probe_sample_period: u16,
+    pub probe_serial_number: SerialNumber,
+    pub probe_session_id: u32,
+    pub probe_sample_period: u16,
 }
 
 #[derive(Debug, PartialEq, DekuRead)]

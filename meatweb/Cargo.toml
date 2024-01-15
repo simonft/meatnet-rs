@@ -18,6 +18,8 @@ thaw = "0.1.7"
 range-set-blaze = "0.1.14"
 itertools = "0.12.0"
 gloo = { version = "0.11.0", features = ["timers"]}
+charming = { version = "0.3.1", features = ["wasm"] }
+chrono = "0.4.31"
 
 [dependencies.web-sys]
 version = "0.3.66"

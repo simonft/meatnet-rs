@@ -1,7 +1,6 @@
 use deku::DekuContainerWrite as _;
 use gloo::timers::future::TimeoutFuture;
-use itertools::{Itertools as _, MinMaxResult::MinMax};
-use leptos::{logging, Action, ReadSignal, Signal, SignalGet, SignalGetUntracked};
+use leptos::{Action, ReadSignal, Signal, SignalGetUntracked};
 use meatnet::{uart::node::request::ReadLogs, EncapsulatableMessage as _, SerialNumber};
 use range_set_blaze::RangeSetBlaze;
 use serde::{Deserialize, Serialize};
@@ -11,16 +10,12 @@ use crate::bluetooth::{CharacteristicArgs, CharacteristicsAndListenerResult, Con
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, Default, Debug, Eq)]
 pub struct Temperature {
-    raw_value: u16,
+    pub raw_value: u16,
 }
 
 impl Temperature {
     pub fn new(raw_value: u16) -> Self {
         Temperature { raw_value }
-    }
-
-    pub fn get_raw_value(&self) -> u16 {
-        self.raw_value
     }
 
     pub fn get_celsius(&self) -> f32 {
@@ -33,30 +28,6 @@ pub struct LogItem {
     pub sequence_number: u32,
     pub temperature: Temperature,
 }
-
-// if let Some(result) = get_characteristics_and_listeners.value().get() {
-//     logging::log!("{:#?}", "running");
-//     spawn_local(async move {
-//         let read_logs = ReadLogs {
-//             probe_serial_number: SerialNumber { number: 0x10001DED },
-//             sequence_number_start: 0,
-//             sequence_number_end: 2,
-//         }.encapsulate();
-//         let mut request_bytes = read_logs
-//             .to_bytes()
-//             .expect("Could not convert message to bytes");
-//         logging::log!("Request Bytes:");
-//         logging::log!("{:02x?}", request_bytes);
-//         let return_value = wasm_bindgen_futures::JsFuture::from(
-//             result
-//                 .rx_characteristic
-//                 .write_value_without_response_with_u8_array(request_bytes.as_mut_slice()),
-//         )
-//         .await
-//         .expect("Connected to bluetooth");
-//         logging::log!("{:#?}", return_value);
-//     });
-// };
 
 pub async fn request_log_updates(
     history: Signal<BTreeMap<u32, LogItem>>,
@@ -103,13 +74,12 @@ pub async fn request_log_updates(
             .to_bytes()
             .expect("Could not create ReadLogs message");
 
-            let return_value = wasm_bindgen_futures::JsFuture::from(
+            wasm_bindgen_futures::JsFuture::from(
                 rx_characteristic.write_value_without_response_with_u8_array(data.as_mut_slice()),
             )
             .await
             .expect("Connected to bluetooth");
 
-            logging::log!("{:#?}", return_value);
             TimeoutFuture::new(1_000).await;
         }
     }
