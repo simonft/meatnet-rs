@@ -17,6 +17,10 @@ impl Temperature {
     pub fn new(raw_value: u16) -> Self {
         Temperature { raw_value }
     }
+
+    pub fn get_raw_value(&self) -> u16 {
+        self.raw_value
+    }
 }
 
 impl IsTemperature for Temperature {

@@ -3,19 +3,25 @@ name = "meatweb"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 deku = "0.16.0"
 meatnet = { path = "../meatnet" }
 leptos = { version = "0.5.4", features = ["csr", "nightly"] }
-leptos-use = "0.9.0"
+leptos-use = { version = "0.9.0", features = ["serde"] }
 rand = "0.8.5"
 serde = "1.0.193"
 serde-wasm-bindgen = "0.6.3"
 uuid = "1.6.1"
 wasm-bindgen-futures = "0.4.39"
-web-sys = { version = "0.3.66", features = [
+stylers = { git = "https://github.com/abishekatp/stylers.git"}
+thaw = "0.1.7"
+range-set-blaze = "0.1.14"
+itertools = "0.12.0"
+gloo = { version = "0.11.0", features = ["timers"]}
+
+[dependencies.web-sys]
+version = "0.3.66"
+features = [
     "Navigator", 
     "Window", 
     "Bluetooth", 
@@ -25,9 +31,7 @@ web-sys = { version = "0.3.66", features = [
     "BluetoothRemoteGattServer", 
     "BluetoothRemoteGattService",
     "BluetoothRemoteGattCharacteristic",
-]}
-stylers = { git = "https://github.com/abishekatp/stylers.git"}
-thaw = "0.1.7"
+]
 
 [build-dependencies]
 stylers = {  git = "https://github.com/abishekatp/stylers.git" }
