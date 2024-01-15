@@ -9,6 +9,11 @@ use temperature::Temperature;
 #[cfg(test)]
 use pretty_assertions::assert_eq;
 
+pub trait EncapsulatableMessage {
+    type Encapsulation;
+    fn encapsulate(self) -> Self::Encapsulation;
+}
+
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
 #[deku(type = "u8")]
 pub enum Hops {

@@ -9,12 +9,12 @@ use meatnet::{
     uart::{
         self,
         node::{
-            request::{self, Request},
+            request::{self, RequestMessage},
             response::ResponseMessage,
             MessageType,
         },
     },
-    SerialNumber,
+    EncapsulatableMessage as _, SerialNumber,
 };
 use range_set_blaze::RangeSetBlaze;
 use std::{
@@ -26,7 +26,6 @@ use tokio::sync::broadcast::{channel, Receiver, Sender};
 use tokio::time::sleep;
 
 use crate::combustion_device::{CombustionDevice, SyncMessages};
-use meatnet::uart::node::request::RequestMessage;
 
 pub struct Node {
     peripheral_id: PeripheralId,
@@ -167,15 +166,14 @@ impl CombustionDevice for Node {
                                 .nth(num_request_concurrent - 1)
                                 .unwrap_or(*range.end());
 
-                            let read_logs = RequestMessage::ReadLogs(request::ReadLogs {
+                            let data = request::ReadLogs {
                                 probe_serial_number: SerialNumber { number: 0x10001DED },
                                 sequence_number_start: start,
                                 sequence_number_end: end,
-                            });
-
-                            let data = Request::new(read_logs)
-                                .to_bytes()
-                                .expect("Could not create ReadLogs message");
+                            }
+                            .encapsulate()
+                            .to_bytes()
+                            .expect("Could not create ReadLogs message");
 
                             match thermometer
                                 .write(

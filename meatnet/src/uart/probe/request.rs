@@ -1,19 +1,45 @@
 use crc::{Crc, CRC_16_IBM_3740};
 use deku::prelude::*;
 
+use crate::EncapsulatableMessage;
+
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
 pub struct SetProbeId {}
+impl EncapsulatableMessage for SetProbeId {
+    type Encapsulation = Request;
+    fn encapsulate(self) -> Self::Encapsulation {
+        Request::new(RequestType::SetProbeId(self))
+    }
+}
 
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
 pub struct SetProbeColor {}
+impl EncapsulatableMessage for SetProbeColor {
+    type Encapsulation = Request;
+    fn encapsulate(self) -> Self::Encapsulation {
+        Request::new(RequestType::SetProbeColor(self))
+    }
+}
 
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
 pub struct ReadSessionInformation {}
+impl EncapsulatableMessage for ReadSessionInformation {
+    type Encapsulation = Request;
+    fn encapsulate(self) -> Self::Encapsulation {
+        Request::new(RequestType::ReadSessionInformation(self))
+    }
+}
 
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
 pub struct ReadLogs {
     pub sequence_number_start: u32,
     pub sequence_number_end: u32,
+}
+impl EncapsulatableMessage for ReadLogs {
+    type Encapsulation = Request;
+    fn encapsulate(self) -> Self::Encapsulation {
+        Request::new(RequestType::ReadLogs(self))
+    }
 }
 
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
@@ -35,6 +61,17 @@ impl RequestType {
             RequestType::SetProbeColor(r) => r.to_bytes(),
             RequestType::ReadSessionInformation(r) => r.to_bytes(),
             RequestType::ReadLogs(r) => r.to_bytes(),
+        }
+    }
+
+    // This could just return Request::new(self), but we're using it to make sure we've implemented
+    // EncapsulatableMessage for all RequestMessage variants.
+    pub fn encapsulate(self) -> Request {
+        match self {
+            RequestType::SetProbeId(r) => r.encapsulate(),
+            RequestType::SetProbeColor(r) => r.encapsulate(),
+            RequestType::ReadSessionInformation(r) => r.encapsulate(),
+            RequestType::ReadLogs(r) => r.encapsulate(),
         }
     }
 }

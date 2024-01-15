@@ -3,15 +3,38 @@ use deku::prelude::*;
 
 use crate::{MacAddress, NetworkInformation, ProbeStatus, ProductType, SerialNumber};
 
+use crate::EncapsulatableMessage;
+
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
 pub struct SetProbeId {}
+
+impl EncapsulatableMessage for SetProbeId {
+    type Encapsulation = Request;
+    fn encapsulate(self) -> Request {
+        Request::new(RequestMessage::SetProbeId(self))
+    }
+}
 
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
 pub struct SetProbeColor {}
 
+impl EncapsulatableMessage for SetProbeColor {
+    type Encapsulation = Request;
+    fn encapsulate(self) -> Request {
+        Request::new(RequestMessage::SetProbeColor(self))
+    }
+}
+
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
 pub struct ReadSessionInformation {
     pub serial_number: SerialNumber,
+}
+
+impl EncapsulatableMessage for ReadSessionInformation {
+    type Encapsulation = Request;
+    fn encapsulate(self) -> Request {
+        Request::new(RequestMessage::ReadSessionInformation(self))
+    }
 }
 
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
@@ -19,6 +42,13 @@ pub struct ReadLogs {
     pub probe_serial_number: SerialNumber,
     pub sequence_number_start: u32,
     pub sequence_number_end: u32,
+}
+
+impl EncapsulatableMessage for ReadLogs {
+    type Encapsulation = Request;
+    fn encapsulate(self) -> Request {
+        Request::new(RequestMessage::ReadLogs(self))
+    }
 }
 
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
@@ -51,6 +81,13 @@ impl DekuWrite for ProbeStatusMessage {
     }
 }
 
+impl EncapsulatableMessage for ProbeStatusMessage {
+    type Encapsulation = Request;
+    fn encapsulate(self) -> Request {
+        Request::new(RequestMessage::ProbeStatusMessage(self))
+    }
+}
+
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
 pub struct ConnectionDetailRecord {
     pub serial_number: [u8; 10],
@@ -69,6 +106,13 @@ pub struct HeartbeatMessage {
     pub connection_details: [ConnectionDetailRecord; 4],
 }
 
+impl EncapsulatableMessage for HeartbeatMessage {
+    type Encapsulation = Request;
+    fn encapsulate(self) -> Request {
+        Request::new(RequestMessage::HeartbeatMessage(self))
+    }
+}
+
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
 pub struct SyncThermometer {
     #[deku(bytes = "1")]
@@ -80,6 +124,13 @@ pub struct SyncThermometer {
 pub struct SyncThermometerList {
     mac_address: MacAddress,
     sync_thermometers: [SyncThermometer; 4],
+}
+
+impl EncapsulatableMessage for SyncThermometerList {
+    type Encapsulation = Request;
+    fn encapsulate(self) -> Request {
+        Request::new(RequestMessage::SyncThermometerList(self))
+    }
 }
 
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
@@ -112,6 +163,20 @@ impl RequestMessage {
             }
             RequestMessage::HeartbeatMessage(r) => r.to_bytes(),
             RequestMessage::SyncThermometerList(r) => r.to_bytes(),
+        }
+    }
+
+    // This could just return Request::new(self), but we're using it to make sure we've implemented
+    // EncapsulatableMessage for all RequestMessage variants.
+    pub fn encapsulate(self) -> Request {
+        match self {
+            RequestMessage::SetProbeId(r) => r.encapsulate(),
+            RequestMessage::SetProbeColor(r) => r.encapsulate(),
+            RequestMessage::ReadSessionInformation(r) => r.encapsulate(),
+            RequestMessage::ReadLogs(r) => r.encapsulate(),
+            RequestMessage::ProbeStatusMessage(r) => r.encapsulate(),
+            RequestMessage::HeartbeatMessage(r) => r.encapsulate(),
+            RequestMessage::SyncThermometerList(r) => r.encapsulate(),
         }
     }
 }

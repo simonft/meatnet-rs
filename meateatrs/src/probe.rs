@@ -6,8 +6,11 @@ use btleplug::{
 use deku::{DekuContainerRead as _, DekuContainerWrite as _};
 use futures::{Future, StreamExt as _};
 use meatnet::{
-    uart::{self, probe::response::Response},
-    ProbeStatus,
+    uart::probe::{
+        request::ReadLogs,
+        response::{Response, ResponseMessage},
+    },
+    EncapsulatableMessage, ProbeStatus, ProductType,
 };
 use range_set_blaze::RangeSetBlaze;
 use std::{collections::BTreeMap, pin::Pin, time::Duration};
@@ -49,7 +52,7 @@ impl CombustionDevice for Probe {
         self.rx_characteristic = Some(rx_characteristic);
     }
     fn get_device_type(&self) -> meatnet::ProductType {
-        meatnet::ProductType::PredictiveProbe
+        ProductType::PredictiveProbe
     }
 
     fn get_peripheral_id(&self) -> &PeripheralId {
@@ -80,7 +83,7 @@ impl CombustionDevice for Probe {
                     match result {
                         Ok(((tmp_rest, tmp_offset), message)) => {
                             match message.message {
-                                uart::probe::response::ResponseMessage::ReadLogs(m) => {
+                                ResponseMessage::ReadLogs(m) => {
                                     history.insert(m.sequence_number, m.temperatures);
                                     self.messages_tx
                                         .send(SyncMessages::LogRecieved(m.sequence_number))?;
@@ -169,18 +172,13 @@ impl CombustionDevice for Probe {
                             .nth(num_request_concurrent - 1)
                             .unwrap_or(*range.end());
 
-                        let read_logs = uart::probe::request::Request::new(
-                            uart::probe::request::RequestType::ReadLogs(
-                                uart::probe::request::ReadLogs {
-                                    sequence_number_start: start,
-                                    sequence_number_end: end,
-                                },
-                            ),
-                        );
-
-                        let data = read_logs
-                            .to_bytes()
-                            .expect("Could not create ReadLogs message");
+                        let data = ReadLogs {
+                            sequence_number_start: start,
+                            sequence_number_end: end,
+                        }
+                        .encapsulate()
+                        .to_bytes()
+                        .expect("Could not create ReadLogs message");
 
                         match thermometer
                             .write(
