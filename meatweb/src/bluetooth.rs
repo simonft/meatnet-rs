@@ -32,6 +32,7 @@ pub struct CharacteristicArgs {
 #[derive(Clone)]
 pub struct CurrentState {
     pub temperature: f32,
+    pub serial_number: u32,
     pub log_start: u32,
     pub log_end: u32,
 }
@@ -86,6 +87,7 @@ pub fn process_bluetooth_event(
                         temperature: m.status.get_core_temperature().get_celsius(),
                         log_start: m.status.log_start,
                         log_end: m.status.log_end,
+                        serial_number: m.probe_serial_number.number,
                     }));
                 }
                 _ => logging::log!("{:#?}", r),

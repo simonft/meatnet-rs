@@ -167,6 +167,7 @@ impl CombustionDevice for Node {
                                 .unwrap_or(*range.end());
 
                             let data = request::ReadLogs {
+                                // TODO: Don't hardcode this.
                                 probe_serial_number: SerialNumber { number: 0x10001DED },
                                 sequence_number_start: start,
                                 sequence_number_end: end,

@@ -66,7 +66,7 @@ pub async fn request_log_updates(
                 .unwrap_or(*range.end());
 
             let mut data = ReadLogs {
-                probe_serial_number: SerialNumber { number: 0x10001DED },
+                probe_serial_number: SerialNumber { number: state.serial_number },
                 sequence_number_start: start,
                 sequence_number_end: end,
             }
