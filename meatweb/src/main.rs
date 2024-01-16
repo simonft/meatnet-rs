@@ -2,7 +2,7 @@ mod bluetooth;
 mod chart;
 mod history;
 
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, panic};
 
 use bluetooth::{get_characteristics_and_listeners_from_service, show_connected, ConnectionState};
 use history::LogItem;
@@ -138,5 +138,6 @@ fn App() -> impl IntoView {
 }
 
 fn main() {
+    panic::set_hook(Box::new(console_error_panic_hook::hook));
     leptos::mount_to_body(|| view! { <App/> })
 }
