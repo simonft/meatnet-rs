@@ -13,8 +13,6 @@ pub async fn request_log_updates(
     connection_state: ReadSignal<ConnectionState>,
     characteristics: Action<CharacteristicArgs, CharacteristicsAndListenerResult>,
 ) {
-    logging::log!("starting request_log_updates");
-
     let logs_received: RangeSetBlaze<u32> =
         range_set_blaze::RangeSetBlaze::from_iter(history.get_untracked().keys());
 

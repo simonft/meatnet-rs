@@ -17,7 +17,6 @@ pub fn chart_handler(
     set_chart: WriteSignal<Option<Echarts>>,
     get_chart: ReadSignal<Option<Echarts>>,
 ) {
-    logging::log!("chart_handler");
     let max_value = match history.last_key_value() {
         Some((k, _)) => *k,
         None => 0,
