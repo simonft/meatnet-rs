@@ -3,7 +3,9 @@ pub mod uart;
 
 use bitvec::prelude::*;
 use deku::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::u8;
+
 use temperature::Temperature;
 
 #[cfg(test)]
@@ -201,7 +203,7 @@ pub enum ProductType {
     MeatNetRepeater,
 }
 
-#[derive(Debug, PartialEq, DekuRead, DekuWrite)]
+#[derive(Debug, PartialEq, DekuRead, DekuWrite, Clone, Serialize, Deserialize)]
 #[deku(endian = "little")]
 pub struct SerialNumber {
     pub number: u32,

@@ -1,17 +1,36 @@
 use deku::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::{parse_raw_temperature_data, temperature::Temperature, SerialNumber};
 
 #[cfg(test)]
 use crate::uart::node::response::{Response, ResponseHeader, ResponseMessage};
 
-#[derive(Debug, PartialEq, DekuRead)]
+#[derive(Debug, PartialEq, DekuRead, Clone, Serialize, Deserialize)]
 pub struct ReadLogs {
     pub probe_serial_number: SerialNumber,
     pub sequence_number: u32,
     #[deku(reader = "parse_raw_temperature_data(deku::rest)")]
     pub temperatures: [Temperature; 8],
-    pub virtual_sensors_and_state: [u8; 7],
+    #[deku(bits = "2", pad_bits_before = "1")]
+    pub virtual_ambient_sensor: u8,
+    #[deku(bits = "2")]
+    pub virtual_surface_sensor: u8,
+    #[deku(bits = "3")]
+    pub virtual_core_sensor: u8,
+    pub virtual_sensors_and_state: [u8; 6],
+}
+
+impl ReadLogs {
+    pub fn get_virtual_surface_temperature(&self) -> &Temperature {
+        &self.temperatures[self.virtual_surface_sensor as usize + 3]
+    }
+    pub fn get_virtual_core_temperature(&self) -> &Temperature {
+        &self.temperatures[self.virtual_core_sensor as usize]
+    }
+    pub fn get_vitrual_ambient_temperature(&self) -> &Temperature {
+        &self.temperatures[self.virtual_ambient_sensor as usize + 4]
+    }
 }
 
 #[test]
@@ -34,7 +53,10 @@ fn test_parse_read_logs_response() {
             Temperature::new(915),
             Temperature::new(915),
         ],
-        virtual_sensors_and_state: [224, 0, 0, 254, 255, 215, 7],
+        virtual_ambient_sensor: 3,
+        virtual_surface_sensor: 0,
+        virtual_core_sensor: 0,
+        virtual_sensors_and_state: [0, 0, 254, 255, 215, 7],
     };
 
     let expected = Response {

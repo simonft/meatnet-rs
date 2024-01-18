@@ -4,11 +4,11 @@ mod history;
 
 use std::{collections::BTreeMap, panic};
 
-use bluetooth::{get_characteristics_and_listeners_from_service, show_connected, ConnectionState};
-use history::LogItem;
+use bluetooth::{get_characteristics_and_listeners_from_service, ConnectionState};
 use leptos::*;
 
-use leptos_use::storage::{use_local_storage, JsonCodec};
+use leptos_use::{storage::{use_local_storage, JsonCodec}, watch_throttled};
+use meatnet::uart::node::response::ReadLogs;
 use stylers::style;
 use thaw::{Button, ButtonVariant, Layout, Spinner, SpinnerSize, Grid, GridItem};
 use uuid::Uuid;
@@ -21,10 +21,8 @@ const UART_TX_CHARACTERISTIC_UUID: Uuid = uuid::uuid!("6E400003-B5A3-F393-E0A9-E
 
 #[component]
 fn App() -> impl IntoView {
-    let stable = create_resource(|| (), |_| async move { show_connected().await });
-
     let (history, set_history, reset_history) =
-        use_local_storage::<BTreeMap<u32, LogItem>, JsonCodec>("history");
+        use_local_storage::<BTreeMap<u32, ReadLogs>, JsonCodec>("history");
 
     let (state, set_state) = create_signal(ConnectionState::Disconnected);
     let (get_chart, set_chart) = create_signal(None);
@@ -39,14 +37,6 @@ fn App() -> impl IntoView {
         }
     });
 
-    let _async_result = move || {
-        stable
-            .get()
-            .map(|value| format!("Server returned {value:?}"))
-            // This loading state will only show before the first load
-            .unwrap_or_else(|| "Loading...".into())
-    };
-
     let leptos_use::UseIntervalReturn { counter, .. } = leptos_use::use_interval(1000);
 
     let _refresh_effect = create_effect(move |_| {
@@ -57,11 +47,15 @@ fn App() -> impl IntoView {
         });
     });
 
-    let _history_update = create_effect(move |_| {
-        let history = history.get();
-
+    let _history_update = watch_throttled(move|| history.get(), 
+    move |history, _, _| {
         chart_handler(history, set_chart, get_chart);
+    }, 5000.0);
+
+    request_idle_callback(move || {
+        chart_handler(&history.get_untracked(), set_chart, get_chart);
     });
+    
 
     let styler_class = style! {
     .temperature {
@@ -135,6 +129,7 @@ fn App() -> impl IntoView {
             </Grid>
         </Layout>
     }
+
 }
 
 fn main() {

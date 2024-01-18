@@ -14,14 +14,13 @@ const NODE_UART_UUID: Uuid = uuid::uuid!("6E400001-B5A3-F393-E0A9-E50E24DCCA9E")
 use meatnet::{
     temperature::IsTemperature,
     uart::node::{
-        request::RequestMessage, response::ResponseMessage, try_request_or_response_from,
+        request::RequestMessage, response::{ResponseMessage, ReadLogs}, try_request_or_response_from,
         MessageType,
     },
 };
 
 use leptos::{ev, logging, prelude::*};
 
-use crate::history::{LogItem, Temperature};
 
 pub struct CharacteristicArgs {
     pub service: Uuid,
@@ -47,7 +46,7 @@ pub enum ConnectionState {
 pub fn process_bluetooth_event(
     event: ev::CustomEvent,
     set_temperature: WriteSignal<ConnectionState>,
-    set_history: WriteSignal<BTreeMap<u32, LogItem>>,
+    set_history: WriteSignal<BTreeMap<u32, ReadLogs>>,
 ) {
     let data = event
         .target()
@@ -65,19 +64,17 @@ pub fn process_bluetooth_event(
 
     match try_request_or_response_from(vec_data.as_slice()) {
         Ok(message) => match message {
+            #[allow(clippy::single_match)] 
             MessageType::Response(r) => match r.message {
                 ResponseMessage::ReadLogs(m) => {
                     set_history.update(|history| {
                         history.insert(
                             m.sequence_number,
-                            LogItem {
-                                sequence_number: m.sequence_number,
-                                temperature: Temperature::new(m.temperatures[0].get_raw_value()),
-                            },
+                            m
                         );
                     });
                 }
-                _ => logging::log!("{:#?}", r),
+                _ => (),
             },
             MessageType::Request(r) => match r.message {
                 RequestMessage::HeartbeatMessage(_) => {}
@@ -90,7 +87,7 @@ pub fn process_bluetooth_event(
                         serial_number: m.probe_serial_number.number,
                     }));
                 }
-                _ => logging::log!("{:#?}", r),
+                _ => ()
             },
         },
         Err(e) => {
@@ -182,7 +179,7 @@ pub async fn get_characteristics_and_listeners_from_service(
     rx_characteristic: Uuid,
     tx_characteristic: Uuid,
     set_temperature: WriteSignal<ConnectionState>,
-    set_history: WriteSignal<BTreeMap<u32, LogItem>>,
+    set_history: WriteSignal<BTreeMap<u32, ReadLogs>>,
 ) -> CharacteristicsAndListenerResult {
     let service = get_service(&service, set_temperature).await;
 
@@ -224,19 +221,4 @@ pub async fn get_characteristics_and_listeners_from_service(
         rx_characteristic,
         tx_characteristic,
     }
-}
-
-pub async fn show_connected() -> Vec<String> {
-    let bluetooth = web_sys::window().unwrap().navigator().bluetooth().unwrap();
-    Array::from(
-        &wasm_bindgen_futures::JsFuture::from(bluetooth.get_devices())
-            .await
-            .unwrap(),
-    )
-    .into_iter()
-    .map(|device| {
-        let device = BluetoothDevice::from(device);
-        format!("{} - {}", device.name().unwrap(), device.id())
-    })
-    .collect()
 }

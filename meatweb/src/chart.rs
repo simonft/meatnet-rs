@@ -1,20 +1,23 @@
 use std::collections::BTreeMap;
 
 use charming::{
-    component::Axis, datatype::DataPointItem, element::AxisType, series::Line, Chart, Echarts,
-    WasmRenderer,
+    component::{Axis, Legend},
+    datatype::DataPointItem,
+    element::{AxisType, Orient},
+    series::Line,
+    Chart, Echarts, WasmRenderer,
 };
 use chrono::{Duration, Local, Timelike as _};
 use itertools::Itertools;
-use leptos::{ReadSignal, SignalSet as _, SignalWith as _, WriteSignal};
-
-use crate::history::LogItem;
+use leptos::{logging, ReadSignal, SignalSet as _, SignalWithUntracked, WriteSignal};
+use meatnet::{temperature::IsTemperature, uart::node::response::ReadLogs};
 
 pub fn chart_handler(
-    history: BTreeMap<u32, LogItem>,
+    history: &BTreeMap<u32, ReadLogs>,
     set_chart: WriteSignal<Option<Echarts>>,
     get_chart: ReadSignal<Option<Echarts>>,
 ) {
+    logging::log!("chart_handler");
     let max_value = match history.last_key_value() {
         Some((k, _)) => *k,
         None => 0,
@@ -32,10 +35,7 @@ pub fn chart_handler(
             (start_time + Duration::seconds(i as i64 * 5))
                 .format("%H:%M:%S")
                 .to_string(),
-            match key {
-                Some(key) => key.temperature.get_celsius() as f64,
-                None => f64::NAN,
-            },
+            key,
         )
     });
 
@@ -46,10 +46,67 @@ pub fn chart_handler(
                 .data(data.clone().map(|(k, _)| k).collect_vec()),
         )
         .y_axis(Axis::new().type_(AxisType::Value))
-        .series(Line::new().data(data.map(|(k, v)| DataPointItem::from((v, k))).collect_vec()));
+        .legend(
+            Legend::new()
+                .data(vec!["Core", "Surface", "Ambient"])
+                .right("10")
+                .top("center")
+                .orient(Orient::Vertical),
+        )
+        .series(
+            Line::new().name("Core").data(
+                data.clone()
+                    .map(|(k, v)| {
+                        DataPointItem::from((
+                            match v {
+                                Some(log_item) => {
+                                    log_item.get_virtual_core_temperature().get_celsius()
+                                }
+                                None => f32::NAN,
+                            },
+                            k,
+                        ))
+                    })
+                    .collect_vec(),
+            ),
+        )
+        .series(
+            Line::new().name("Surface").data(
+                data.clone()
+                    .map(|(k, v)| {
+                        DataPointItem::from((
+                            match v {
+                                Some(log_item) => {
+                                    log_item.get_virtual_surface_temperature().get_celsius()
+                                }
+                                None => f32::NAN,
+                            },
+                            k,
+                        ))
+                    })
+                    .collect_vec(),
+            ),
+        )
+        .series(
+            Line::new().name("Ambient").data(
+                data.clone()
+                    .map(|(k, v)| {
+                        DataPointItem::from((
+                            match v {
+                                Some(log_item) => {
+                                    log_item.get_vitrual_ambient_temperature().get_celsius()
+                                }
+                                None => f32::NAN,
+                            },
+                            k,
+                        ))
+                    })
+                    .collect_vec(),
+            ),
+        );
 
     let mut updated = false;
-    get_chart.with(|optional_echarts| match optional_echarts {
+    get_chart.with_untracked(|optional_echarts| match optional_echarts {
         Some(echarts) => {
             WasmRenderer::update(echarts, &chart);
             updated = true

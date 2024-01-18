@@ -1,4 +1,5 @@
 use deku::prelude::*;
+use serde::{Deserialize, Serialize};
 
 pub trait IsTemperature {
     fn get_celsius(&self) -> f32;
@@ -8,7 +9,7 @@ pub trait IsTemperature {
     }
 }
 
-#[derive(Debug, PartialEq, DekuRead)]
+#[derive(Debug, PartialEq, DekuRead, Clone, Copy, Serialize, Deserialize)]
 pub struct Temperature {
     raw_value: u16,
 }

@@ -1,39 +1,20 @@
 use deku::DekuContainerWrite as _;
 use gloo::timers::future::TimeoutFuture;
 use leptos::{Action, ReadSignal, Signal, SignalGetUntracked};
-use meatnet::{uart::node::request::ReadLogs, EncapsulatableMessage as _, SerialNumber};
+use meatnet::{uart::node::request, uart::node::response, EncapsulatableMessage as _, SerialNumber};
 use range_set_blaze::RangeSetBlaze;
-use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
 use crate::bluetooth::{CharacteristicArgs, CharacteristicsAndListenerResult, ConnectionState};
 
-#[derive(Serialize, Deserialize, Clone, PartialEq, Default, Debug, Eq)]
-pub struct Temperature {
-    pub raw_value: u16,
-}
-
-impl Temperature {
-    pub fn new(raw_value: u16) -> Self {
-        Temperature { raw_value }
-    }
-
-    pub fn get_celsius(&self) -> f32 {
-        (self.raw_value as f32 * 0.05) - 20.0
-    }
-}
-
-#[derive(Serialize, Deserialize, Clone, PartialEq, Default, Debug, Eq)]
-pub struct LogItem {
-    pub sequence_number: u32,
-    pub temperature: Temperature,
-}
 
 pub async fn request_log_updates(
-    history: Signal<BTreeMap<u32, LogItem>>,
+    history: Signal<BTreeMap<u32, response::ReadLogs>>,
     connection_state: ReadSignal<ConnectionState>,
     characteristics: Action<CharacteristicArgs, CharacteristicsAndListenerResult>,
 ) {
+    logging::log!("starting request_log_updates");
+
     let logs_received: RangeSetBlaze<u32> =
         range_set_blaze::RangeSetBlaze::from_iter(history.get_untracked().keys());
 
@@ -65,7 +46,7 @@ pub async fn request_log_updates(
                 .nth(num_request_concurrent - 1)
                 .unwrap_or(*range.end());
 
-            let mut data = ReadLogs {
+            let mut data = request::ReadLogs {
                 probe_serial_number: SerialNumber { number: state.serial_number },
                 sequence_number_start: start,
                 sequence_number_end: end,
