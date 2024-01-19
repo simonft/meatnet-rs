@@ -9,7 +9,7 @@ use charming::{
 };
 use chrono::{Duration, Local, Timelike as _};
 use itertools::Itertools;
-use leptos::{logging, ReadSignal, SignalSet as _, SignalWithUntracked, WriteSignal};
+use leptos::{ReadSignal, SignalSet as _, SignalWithUntracked, WriteSignal};
 use meatnet::{temperature::IsTemperature, uart::node::response::ReadLogs};
 
 pub fn chart_handler(
@@ -114,7 +114,7 @@ pub fn chart_handler(
     });
 
     if !updated {
-        set_chart.set(match WasmRenderer::new(800, 600).render("chart", &chart) {
+        set_chart.set(match WasmRenderer::new(900, 600).render("chart", &chart) {
             Ok(value) => Some(value),
             Err(error) => {
                 println!("Error rendering chart: {:?}", error);

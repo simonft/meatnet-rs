@@ -5,13 +5,13 @@ use meatnet::{uart::node::request, uart::node::response, EncapsulatableMessage a
 use range_set_blaze::RangeSetBlaze;
 use std::collections::BTreeMap;
 
-use crate::bluetooth::{CharacteristicArgs, CharacteristicsAndListenerResult, ConnectionState};
+use crate::bluetooth::{CharacteristicsAndListenerResult, ConnectionState};
 
 
 pub async fn request_log_updates(
     history: Signal<BTreeMap<u32, response::ReadLogs>>,
     connection_state: ReadSignal<ConnectionState>,
-    characteristics: Action<CharacteristicArgs, CharacteristicsAndListenerResult>,
+    characteristics: Action<(), CharacteristicsAndListenerResult>,
 ) {
     let logs_received: RangeSetBlaze<u32> =
         range_set_blaze::RangeSetBlaze::from_iter(history.get_untracked().keys());

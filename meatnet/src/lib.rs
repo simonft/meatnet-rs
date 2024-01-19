@@ -166,7 +166,7 @@ impl ProbeStatus {
     }
 }
 
-#[derive(Debug, PartialEq, DekuRead)]
+#[derive(Debug, PartialEq, DekuRead, Clone)]
 #[deku(type = "u8", bits = "2")]
 pub enum Mode {
     Normal = 0,

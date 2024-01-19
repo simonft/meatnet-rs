@@ -12,28 +12,25 @@ use web_sys::{
 const NODE_UART_UUID: Uuid = uuid::uuid!("6E400001-B5A3-F393-E0A9-E50E24DCCA9E");
 
 use meatnet::{
-    temperature::IsTemperature,
+    temperature::Temperature,
     uart::node::{
         request::RequestMessage, response::{ResponseMessage, ReadLogs}, try_request_or_response_from,
         MessageType,
-    },
+    }, Mode,
 };
 
 use leptos::{ev, logging, prelude::*};
 
 
-pub struct CharacteristicArgs {
-    pub service: Uuid,
-    pub tx_characteristic: Uuid,
-    pub rx_characteristic: Uuid,
-}
-
 #[derive(Clone)]
 pub struct CurrentState {
-    pub temperature: f32,
+    pub core_temperature: Temperature,
+    pub surface_temperature: Temperature,
+    pub ambient_temperature: Temperature,
     pub serial_number: u32,
     pub log_start: u32,
     pub log_end: u32,
+    pub mode: Mode,
 }
 
 #[derive(Clone)]
@@ -80,12 +77,17 @@ pub fn process_bluetooth_event(
                 RequestMessage::HeartbeatMessage(_) => {}
                 RequestMessage::SyncThermometerList(_) => {}
                 RequestMessage::ProbeStatusMessage(m) => {
-                    set_temperature(ConnectionState::Connected(CurrentState {
-                        temperature: m.status.get_core_temperature().get_celsius(),
-                        log_start: m.status.log_start,
-                        log_end: m.status.log_end,
-                        serial_number: m.probe_serial_number.number,
-                    }));
+                    if m.status.mode == Mode::Normal {
+                        set_temperature(ConnectionState::Connected(CurrentState {
+                            core_temperature: *m.status.get_core_temperature(),
+                            surface_temperature: *m.status.get_surface_temperature(),
+                            ambient_temperature: *m.status.get_ambient_temperature(),
+                            log_start: m.status.log_start,
+                            log_end: m.status.log_end,
+                            serial_number: m.probe_serial_number.number,
+                            mode: m.status.mode,
+                        }));
+                    }
                 }
                 _ => ()
             },

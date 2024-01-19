@@ -13,7 +13,6 @@ serde = "1.0.193"
 serde-wasm-bindgen = "0.6.3"
 uuid = "1.6.1"
 wasm-bindgen-futures = "0.4.39"
-stylers = { git = "https://github.com/abishekatp/stylers.git"}
 thaw = "0.1.7"
 range-set-blaze = "0.1.14"
 itertools = "0.12.0"
@@ -35,6 +34,3 @@ features = [
     "BluetoothRemoteGattService",
     "BluetoothRemoteGattCharacteristic",
 ]
-
-[build-dependencies]
-stylers = {  git = "https://github.com/abishekatp/stylers.git" }

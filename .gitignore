@@ -1,5 +1,8 @@
-/target
+target/
 *.wasm
 .vscode
 src/dist/
 dist/
+/meatweb/node_modules/
+/meatweb/styles/
+/meatweb/target/
