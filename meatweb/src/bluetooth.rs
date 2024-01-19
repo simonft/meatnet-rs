@@ -169,20 +169,13 @@ pub async fn get_service(
     )
 }
 
-#[derive(Clone)]
-pub struct CharacteristicsAndListenerResult {
-    pub service: BluetoothRemoteGattService,
-    pub rx_characteristic: BluetoothRemoteGattCharacteristic,
-    pub tx_characteristic: BluetoothRemoteGattCharacteristic,
-}
-
 pub async fn get_characteristics_and_listeners_from_service(
     service: Uuid,
     rx_characteristic: Uuid,
     tx_characteristic: Uuid,
     set_temperature: WriteSignal<ConnectionState>,
     set_history: WriteSignal<BTreeMap<u32, ReadLogs>>,
-) -> CharacteristicsAndListenerResult {
+) -> BluetoothRemoteGattCharacteristic {
     let service = get_service(&service, set_temperature).await;
 
     let rx_characteristic = BluetoothRemoteGattCharacteristic::from(
@@ -218,9 +211,5 @@ pub async fn get_characteristics_and_listeners_from_service(
 
     listener_func.forget();
 
-    CharacteristicsAndListenerResult {
-        service,
-        rx_characteristic,
-        tx_characteristic,
-    }
+    rx_characteristic
 }

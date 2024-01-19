@@ -3,21 +3,22 @@ use gloo::timers::future::TimeoutFuture;
 use leptos::{Action, ReadSignal, Signal, SignalGetUntracked};
 use meatnet::{uart::node::request, uart::node::response, EncapsulatableMessage as _, SerialNumber};
 use range_set_blaze::RangeSetBlaze;
+use web_sys::BluetoothRemoteGattCharacteristic;
 use std::collections::BTreeMap;
 
-use crate::bluetooth::{CharacteristicsAndListenerResult, ConnectionState};
+use crate::bluetooth::ConnectionState;
 
 
 pub async fn request_log_updates(
     history: Signal<BTreeMap<u32, response::ReadLogs>>,
     connection_state: ReadSignal<ConnectionState>,
-    characteristics: Action<(), CharacteristicsAndListenerResult>,
+    characteristics: Action<(), BluetoothRemoteGattCharacteristic>,
 ) {
     let logs_received: RangeSetBlaze<u32> =
         range_set_blaze::RangeSetBlaze::from_iter(history.get_untracked().keys());
 
     let rx_characteristic = match characteristics.value().get_untracked() {
-        Some(result) => result.rx_characteristic,
+        Some(result) => result,
         None => return,
     };
 
