@@ -76,7 +76,7 @@ pub fn process_bluetooth_event(
                 RequestMessage::SyncThermometerList(_) => {}
                 RequestMessage::ProbeStatusMessage(m) => {
                     if m.status.mode == Mode::Normal {
-                        set_temperature(ConnectionState::Connected(CurrentState {
+                        set_temperature.set(ConnectionState::Connected(CurrentState {
                             core_temperature: *m.status.get_core_temperature(),
                             surface_temperature: *m.status.get_surface_temperature(),
                             ambient_temperature: *m.status.get_ambient_temperature(),
@@ -172,7 +172,7 @@ pub async fn get_service(
 
     disconnected_func.forget();
 
-    set_temperature(ConnectionState::Connecting);
+    set_temperature.set(ConnectionState::Connecting);
 
     let gatt = device.gatt().unwrap();
 
