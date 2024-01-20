@@ -9,20 +9,43 @@ use charming::{
 };
 use chrono::{Duration, Local, Timelike as _};
 use itertools::Itertools;
-use leptos::{ReadSignal, SignalSet as _, SignalWithUntracked, WriteSignal};
+use leptos::{
+    ReadSignal, SignalGetUntracked as _, SignalSet as _, SignalWithUntracked, WriteSignal,
+};
 use meatnet::{temperature::IsTemperature, uart::node::response::ReadLogs};
+use wasm_bindgen_futures::wasm_bindgen;
+
+use wasm_bindgen::prelude::*;
+
+use crate::bluetooth::ConnectionState;
+
+// charming doesn't bring in the .clear() method, so we bring it in ourselves.
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_name = echarts)]
+    pub type OurEcharts;
+
+    #[wasm_bindgen(method, js_name = "clear")]
+    fn clear(this: &OurEcharts);
+}
 
 pub fn chart_handler(
     history: &BTreeMap<u32, ReadLogs>,
     set_chart: WriteSignal<Option<Echarts>>,
     get_chart: ReadSignal<Option<Echarts>>,
+    state: ReadSignal<ConnectionState>,
 ) {
     let max_value = match history.last_key_value() {
         Some((k, _)) => *k,
         None => 0,
     };
 
-    let elapsed = Duration::seconds(max_value as i64 * 5);
+    let max_log = match state.get_untracked() {
+        ConnectionState::Connected(state) => state.log_end,
+        _ => max_value,
+    };
+
+    let elapsed = Duration::seconds(max_log as i64 * 5);
 
     let mut start_time = Local::now() - elapsed;
     let extra_seconds = start_time.second() % 5;
@@ -107,8 +130,13 @@ pub fn chart_handler(
     let mut updated = false;
     get_chart.with_untracked(|optional_echarts| match optional_echarts {
         Some(echarts) => {
-            WasmRenderer::update(echarts, &chart);
-            updated = true
+            if !history.is_empty() {
+                WasmRenderer::update(echarts, &chart);
+                updated = true
+            } else {
+                // Just updating with an empty chart doesn't work, so we clear it first.
+                OurEcharts::from(JsValue::from(echarts)).clear();
+            }
         }
         None => (),
     });

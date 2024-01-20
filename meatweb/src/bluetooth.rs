@@ -4,9 +4,9 @@ use js_sys::Array;
 use uuid::Uuid;
 use web_sys::{
     self, js_sys,
-    wasm_bindgen::{self, JsCast as _, JsValue},
+    wasm_bindgen::{self, closure::Closure, JsCast as _, JsValue},
     BluetoothDevice, BluetoothLeScanFilterInit, BluetoothRemoteGattCharacteristic,
-    BluetoothRemoteGattService, RequestDeviceOptions,
+    BluetoothRemoteGattService, Event, RequestDeviceOptions,
 };
 
 const NODE_UART_UUID: Uuid = uuid::uuid!("6E400001-B5A3-F393-E0A9-E50E24DCCA9E");
@@ -14,13 +14,14 @@ const NODE_UART_UUID: Uuid = uuid::uuid!("6E400001-B5A3-F393-E0A9-E50E24DCCA9E")
 use meatnet::{
     temperature::Temperature,
     uart::node::{
-        request::RequestMessage, response::{ResponseMessage, ReadLogs}, try_request_or_response_from,
-        MessageType,
-    }, Mode,
+        request::RequestMessage,
+        response::{ReadLogs, ResponseMessage},
+        try_request_or_response_from, MessageType,
+    },
+    Mode,
 };
 
 use leptos::{ev, logging, prelude::*};
-
 
 #[derive(Clone)]
 pub struct CurrentState {
@@ -61,14 +62,11 @@ pub fn process_bluetooth_event(
 
     match try_request_or_response_from(vec_data.as_slice()) {
         Ok(message) => match message {
-            #[allow(clippy::single_match)] 
+            #[allow(clippy::single_match)]
             MessageType::Response(r) => match r.message {
                 ResponseMessage::ReadLogs(m) => {
                     set_history.update(|history| {
-                        history.insert(
-                            m.sequence_number,
-                            m
-                        );
+                        history.insert(m.sequence_number, m);
                     });
                 }
                 _ => (),
@@ -89,7 +87,7 @@ pub fn process_bluetooth_event(
                         }));
                     }
                 }
-                _ => ()
+                _ => (),
             },
         },
         Err(e) => {
@@ -99,9 +97,27 @@ pub fn process_bluetooth_event(
     }
 }
 
+pub fn setup_disconnect_handler(state: WriteSignal<ConnectionState>) {
+    let bluetooth = web_sys::window().unwrap().navigator().bluetooth().unwrap();
+
+    let disconnected_func = Closure::wrap(Box::new(move |_: Event| {
+        state.set(ConnectionState::Disconnected);
+        logging::log!("disconnected");
+    }) as Box<dyn FnMut(Event)>);
+
+    bluetooth.set_ongattserverdisconnected(Some(
+        disconnected_func
+        .as_ref()
+        .unchecked_ref(),
+    ));
+
+    disconnected_func.forget();
+}
+
 pub async fn get_service(
     uuid: &Uuid,
     set_temperature: WriteSignal<ConnectionState>,
+    set_state: WriteSignal<ConnectionState>,
 ) -> BluetoothRemoteGattService {
     let _predictive_probe_id = 1;
     let _meatnet_repeater_id = 2;
@@ -143,6 +159,19 @@ pub async fn get_service(
             .unwrap(),
     );
 
+    let disconnected_func = Closure::wrap(Box::new(move |_: Event| {
+        set_state.set(ConnectionState::Disconnected);
+        logging::log!("disconnected");
+    }) as Box<dyn FnMut(Event)>);
+
+    device.set_ongattserverdisconnected(Some(
+        disconnected_func
+        .as_ref()
+        .unchecked_ref(),
+    ));
+
+    disconnected_func.forget();
+
     set_temperature(ConnectionState::Connecting);
 
     let gatt = device.gatt().unwrap();
@@ -175,8 +204,9 @@ pub async fn get_characteristics_and_listeners_from_service(
     tx_characteristic: Uuid,
     set_temperature: WriteSignal<ConnectionState>,
     set_history: WriteSignal<BTreeMap<u32, ReadLogs>>,
+    set_state: WriteSignal<ConnectionState>,
 ) -> BluetoothRemoteGattCharacteristic {
-    let service = get_service(&service, set_temperature).await;
+    let service = get_service(&service, set_temperature, set_state).await;
 
     let rx_characteristic = BluetoothRemoteGattCharacteristic::from(
         wasm_bindgen_futures::JsFuture::from(

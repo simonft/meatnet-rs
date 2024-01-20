@@ -60,7 +60,7 @@ pub async fn request_log_updates(
             .await
             .expect("Connected to bluetooth");
 
-            TimeoutFuture::new(1_000).await;
+            TimeoutFuture::new(2_000).await;
         }
     }
 }
