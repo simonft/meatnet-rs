@@ -22,6 +22,17 @@ const UART_TX_CHARACTERISTIC_UUID: Uuid = uuid::uuid!("6E400003-B5A3-F393-E0A9-E
 
 #[component]
 fn App() -> impl IntoView {
+
+    if web_sys::window().unwrap().navigator().bluetooth().is_none(){
+        return view! {
+            <div class="container mx-auto">
+                <div class="object-center text-center py-80 text-3xl">
+                    "To use this site you'll need to use a browser that supports connecting to bluetooth devices, such as Chrome on a laptop or desktop computer"
+                </div>
+            </div>
+        }
+    };
+
     let (history, set_history, _) =
         use_local_storage::<BTreeMap<u32, ReadLogs>, JsonCodec>("history");
 
