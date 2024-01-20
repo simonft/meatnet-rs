@@ -18,7 +18,7 @@ use meatnet::{
         response::{ReadLogs, ResponseMessage},
         try_request_or_response_from, MessageType,
     },
-    Mode,
+    Mode, SerialNumber,
 };
 
 use leptos::{ev, logging, prelude::*};
@@ -28,7 +28,7 @@ pub struct CurrentState {
     pub core_temperature: Temperature,
     pub surface_temperature: Temperature,
     pub ambient_temperature: Temperature,
-    pub serial_number: u32,
+    pub serial_number: SerialNumber,
     pub log_start: u32,
     pub log_end: u32,
     pub mode: Mode,
@@ -43,7 +43,8 @@ pub enum ConnectionState {
 
 pub fn process_bluetooth_event(
     event: ev::CustomEvent,
-    set_temperature: WriteSignal<ConnectionState>,
+    set_state: WriteSignal<ConnectionState>,
+    get_state: ReadSignal<ConnectionState>,
     set_history: WriteSignal<BTreeMap<u32, ReadLogs>>,
 ) {
     let data = event
@@ -65,9 +66,14 @@ pub fn process_bluetooth_event(
             #[allow(clippy::single_match)]
             MessageType::Response(r) => match r.message {
                 ResponseMessage::ReadLogs(m) => {
-                    set_history.update(|history| {
-                        history.insert(m.sequence_number, m);
-                    });
+                    // We only support one probe right now.
+                    if let ConnectionState::Connected(current_state) = get_state.get_untracked() {
+                        if current_state.serial_number == m.probe_serial_number {
+                            set_history.update(|history| {
+                                history.insert(m.sequence_number, m);
+                            });
+                        }
+                    }
                 }
                 _ => (),
             },
@@ -75,14 +81,15 @@ pub fn process_bluetooth_event(
                 RequestMessage::HeartbeatMessage(_) => {}
                 RequestMessage::SyncThermometerList(_) => {}
                 RequestMessage::ProbeStatusMessage(m) => {
-                    if m.status.mode == Mode::Normal {
-                        set_temperature.set(ConnectionState::Connected(CurrentState {
+                    // We only support one probe right now.
+                    if m.status.mode == Mode::Normal && m.status.probe_id == 0 {
+                        set_state.set(ConnectionState::Connected(CurrentState {
                             core_temperature: *m.status.get_core_temperature(),
                             surface_temperature: *m.status.get_surface_temperature(),
                             ambient_temperature: *m.status.get_ambient_temperature(),
                             log_start: m.status.log_start,
                             log_end: m.status.log_end,
-                            serial_number: m.probe_serial_number.number,
+                            serial_number: m.probe_serial_number,
                             mode: m.status.mode,
                         }));
                     }
@@ -105,18 +112,13 @@ pub fn setup_disconnect_handler(state: WriteSignal<ConnectionState>) {
         logging::log!("disconnected");
     }) as Box<dyn FnMut(Event)>);
 
-    bluetooth.set_ongattserverdisconnected(Some(
-        disconnected_func
-        .as_ref()
-        .unchecked_ref(),
-    ));
+    bluetooth.set_ongattserverdisconnected(Some(disconnected_func.as_ref().unchecked_ref()));
 
     disconnected_func.forget();
 }
 
 pub async fn get_service(
     uuid: &Uuid,
-    set_temperature: WriteSignal<ConnectionState>,
     set_state: WriteSignal<ConnectionState>,
 ) -> BluetoothRemoteGattService {
     let _predictive_probe_id = 1;
@@ -164,15 +166,11 @@ pub async fn get_service(
         logging::log!("disconnected");
     }) as Box<dyn FnMut(Event)>);
 
-    device.set_ongattserverdisconnected(Some(
-        disconnected_func
-        .as_ref()
-        .unchecked_ref(),
-    ));
+    device.set_ongattserverdisconnected(Some(disconnected_func.as_ref().unchecked_ref()));
 
     disconnected_func.forget();
 
-    set_temperature.set(ConnectionState::Connecting);
+    set_state.set(ConnectionState::Connecting);
 
     let gatt = device.gatt().unwrap();
 
@@ -202,11 +200,11 @@ pub async fn get_characteristics_and_listeners_from_service(
     service: Uuid,
     rx_characteristic: Uuid,
     tx_characteristic: Uuid,
-    set_temperature: WriteSignal<ConnectionState>,
-    set_history: WriteSignal<BTreeMap<u32, ReadLogs>>,
     set_state: WriteSignal<ConnectionState>,
+    get_state: ReadSignal<ConnectionState>,
+    set_history: WriteSignal<BTreeMap<u32, ReadLogs>>,
 ) -> BluetoothRemoteGattCharacteristic {
-    let service = get_service(&service, set_temperature, set_state).await;
+    let service = get_service(&service, set_state).await;
 
     let rx_characteristic = BluetoothRemoteGattCharacteristic::from(
         wasm_bindgen_futures::JsFuture::from(
@@ -225,7 +223,7 @@ pub async fn get_characteristics_and_listeners_from_service(
     );
 
     let listener_func = wasm_bindgen::closure::Closure::wrap(Box::new(move |ev| {
-        process_bluetooth_event(ev, set_temperature, set_history)
+        process_bluetooth_event(ev, set_state, get_state, set_history)
     }) as Box<dyn FnMut(_)>);
 
     tx_characteristic

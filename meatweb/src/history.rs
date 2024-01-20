@@ -1,7 +1,7 @@
 use deku::DekuContainerWrite as _;
 use gloo::timers::future::TimeoutFuture;
 use leptos::{Action, ReadSignal, Signal, SignalGetUntracked};
-use meatnet::{uart::node::request, uart::node::response, EncapsulatableMessage as _, SerialNumber};
+use meatnet::{uart::node::request, uart::node::response, EncapsulatableMessage as _,};
 use range_set_blaze::RangeSetBlaze;
 use web_sys::BluetoothRemoteGattCharacteristic;
 use std::collections::BTreeMap;
@@ -46,7 +46,7 @@ pub async fn request_log_updates(
                 .unwrap_or(*range.end());
 
             let mut data = request::ReadLogs {
-                probe_serial_number: SerialNumber { number: state.serial_number },
+                probe_serial_number: state.serial_number,
                 sequence_number_start: start,
                 sequence_number_end: end,
             }

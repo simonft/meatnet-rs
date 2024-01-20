@@ -42,7 +42,7 @@ fn App() -> impl IntoView {
     let get_characteristics_and_listeners = create_action(move |_| {
 
         async move {
-            get_characteristics_and_listeners_from_service(NODE_UART_UUID, UART_RX_CHARACTERISTIC_UUID, UART_TX_CHARACTERISTIC_UUID, set_state, set_history, set_state)
+            get_characteristics_and_listeners_from_service(NODE_UART_UUID, UART_RX_CHARACTERISTIC_UUID, UART_TX_CHARACTERISTIC_UUID, set_state, state, set_history, )
                 .await
         }
     });

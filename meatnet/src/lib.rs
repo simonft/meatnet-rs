@@ -203,7 +203,7 @@ pub enum ProductType {
     MeatNetRepeater,
 }
 
-#[derive(Debug, PartialEq, DekuRead, DekuWrite, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, DekuRead, DekuWrite, Clone, Copy, Serialize, Deserialize)]
 #[deku(endian = "little")]
 pub struct SerialNumber {
     pub number: u32,
