@@ -67,45 +67,54 @@ fn App() -> impl IntoView {
 
     view! {
         <div class="container mx-auto w-[1200px]">
-            <div class="flex flex-row">
-                <div class="basis-3/4">
-                    <div id="chart" class="chart"></div>
+            <div class="flex flex-col justify-center mt-40">
+                <div class="flex flex-row place-content-center">
+                    <div class="basis-3/4">
+                        <div id="chart" class="chart"></div>
+                    </div>
+                    <div class="flex flex-col place-content-between">
+                        <div class="basis-3/4">
+                            <components::LiveTempContainer state=state></components::LiveTempContainer>
+                        </div>
+                        <div class="justify-self-end">
+                            <div class="flex flex-row">
+
+                                <Button
+                                    class="mx-10"
+                                    variant=ButtonVariant::Primary
+                                    disabled=create_memo(move |_| {
+                                        !matches!(state.get(), ConnectionState::Disconnected)
+                                    })
+
+                                    loading=create_memo(move |_| {
+                                        matches!(state.get(), ConnectionState::Connecting)
+                                    })
+
+                                    on:click=move |_| {
+                                        get_characteristics_and_listeners.dispatch(());
+                                    }
+                                >
+
+                                    "Connect"
+                                </Button>
+                                <Button
+                                    class="mx-10"
+                                    variant=ButtonVariant::Primary
+                                    style=""
+                                    on:click=move |_| {
+                                        set_history.set(BTreeMap::new());
+                                    }
+                                >
+
+                                    "Reset Data"
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <components::LiveTempContainer state=state></components::LiveTempContainer>
             </div>
-            <div class="flex flex-row justify-center">
 
-                <Button
-                    class="mx-10"
-                    variant=ButtonVariant::Primary
-                    disabled=create_memo(move |_| {
-                        !matches!(state.get(), ConnectionState::Disconnected)
-                    })
-
-                    loading=create_memo(move |_| {
-                        matches!(state.get(), ConnectionState::Connecting)
-                    })
-
-                    on:click=move |_| {
-                        get_characteristics_and_listeners.dispatch(());
-                    }
-                >
-
-                    "Connect"
-                </Button>
-                <Button
-                    class="mx-10"
-                    variant=ButtonVariant::Primary
-                    style=""
-                    on:click=move |_| {
-                        set_history.set(BTreeMap::new());
-                    }
-                >
-
-                    "Reset Data"
-                </Button>
-            </div>
         </div>
     }
 
