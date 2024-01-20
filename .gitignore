@@ -4,5 +4,5 @@ target/
 src/dist/
 dist/
 /meatweb/node_modules/
-/meatweb/styles/
+/meatweb/style/
 /meatweb/target/
