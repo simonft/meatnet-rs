@@ -1,3 +1,9 @@
+extern crate alloc;
+
+use alloc::format;
+#[cfg(test)]
+use alloc::vec;
+use deku::ctx::BitSize;
 use deku::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -10,7 +16,7 @@ use crate::uart::node::response::{Response, ResponseHeader, ResponseMessage};
 pub struct ReadLogs {
     pub probe_serial_number: SerialNumber,
     pub sequence_number: u32,
-    #[deku(reader = "parse_raw_temperature_data(deku::rest)")]
+    #[deku(reader = "parse_raw_temperature_data(deku::reader, BitSize(8*13))")]
     pub temperatures: [Temperature; 8],
     #[deku(bits = "2", pad_bits_before = "1")]
     pub virtual_ambient_sensor: u8,

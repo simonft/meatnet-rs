@@ -1,5 +1,14 @@
+extern crate alloc;
+
+use alloc::string::ToString;
+#[cfg(test)]
+use alloc::vec;
+use alloc::{borrow::Cow, format, vec::Vec};
 use crc::{Crc, CRC_16_IBM_3740};
+use deku::no_std_io::{Seek, Write};
 use deku::prelude::*;
+use rand::rngs::SmallRng;
+use rand::{RngCore as _, SeedableRng};
 
 use crate::{MacAddress, NetworkInformation, ProbeStatus, ProductType, SerialNumber};
 
@@ -52,7 +61,7 @@ impl EncapsulatableMessage for ReadLogs {
 }
 
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
-#[deku(type = "u8")]
+#[deku(id_type = "u8")]
 pub enum Direction {
     Outbound = 0,
     Inbound,
@@ -71,13 +80,9 @@ pub struct ProbeStatusMessage {
     pub network_information: NetworkInformation,
 }
 
-impl DekuWrite for ProbeStatusMessage {
-    fn write(
-        &self,
-        _: &mut deku::bitvec::BitVec<u8, deku::bitvec::Msb0>,
-        _: (),
-    ) -> Result<(), DekuError> {
-        Err(DekuError::Unexpected("Not implimented".to_string()))
+impl DekuWriter for ProbeStatusMessage {
+    fn to_writer<W: Write + Seek>(&self, _: &mut Writer<W>, _: ()) -> Result<(), DekuError> {
+        Err(DekuError::Parse(Cow::from("Not implimented".to_string())))
     }
 }
 
@@ -159,7 +164,7 @@ impl RequestMessage {
             RequestMessage::ReadSessionInformation(r) => r.to_bytes(),
             RequestMessage::ReadLogs(r) => r.to_bytes(),
             RequestMessage::ProbeStatusMessage(_) => {
-                Err(DekuError::Unexpected("Not implimented".to_string()))
+                Err(DekuError::Parse(Cow::from("Not implimented".to_string())))
             }
             RequestMessage::HeartbeatMessage(r) => r.to_bytes(),
             RequestMessage::SyncThermometerList(r) => r.to_bytes(),
@@ -201,7 +206,7 @@ pub struct Request {
 
 impl Request {
     pub fn new(message: RequestMessage) -> Self {
-        Request::new_with_id(message, rand::random())
+        Request::new_with_id(message, SmallRng::from_os_rng().next_u32())
     }
 
     fn new_with_id(message: RequestMessage, request_id: u32) -> Self {
@@ -284,10 +289,6 @@ fn test_heartbeat_message_to_bytes() {
     });
 
     let nm = Request::new_with_id(heartbeat_message, 0xa850cd42);
-    nm.to_bytes()
-        .unwrap()
-        .iter()
-        .for_each(|b| print!("{:02x} ", b));
 
     assert_eq!(
         nm.to_bytes().unwrap(),

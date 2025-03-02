@@ -3,6 +3,3 @@ target/
 .vscode
 src/dist/
 dist/
-/meatweb/node_modules/
-/meatweb/style/
-/meatweb/target/

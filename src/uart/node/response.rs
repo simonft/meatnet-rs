@@ -1,3 +1,8 @@
+extern crate alloc;
+
+#[cfg(test)]
+use alloc::vec;
+use alloc::{format, vec::Vec};
 use deku::prelude::*;
 
 use crate::SerialNumber;
@@ -45,16 +50,6 @@ pub struct Response {
     pub header: ResponseHeader,
     #[deku(ctx = "header.response_type & 0b01111111")]
     pub message: ResponseMessage,
-}
-
-impl DekuWrite for Response {
-    fn write(
-        &self,
-        _: &mut deku::bitvec::BitVec<u8, deku::bitvec::Msb0>,
-        _: (),
-    ) -> Result<(), DekuError> {
-        Err(DekuError::Unexpected("Not implimented".to_string()))
-    }
 }
 
 #[test]

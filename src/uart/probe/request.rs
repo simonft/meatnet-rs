@@ -1,3 +1,8 @@
+extern crate alloc;
+
+#[cfg(test)]
+use alloc::vec;
+use alloc::{format, vec::Vec};
 use crc::{Crc, CRC_16_IBM_3740};
 use deku::prelude::*;
 

@@ -1,4 +1,14 @@
-use deku::prelude::*;
+extern crate alloc;
+
+use alloc::format;
+#[cfg(test)]
+use alloc::vec;
+use alloc::{borrow::Cow, string::ToString};
+use deku::{
+    ctx::BitSize,
+    no_std_io::{Seek, Write},
+    prelude::*,
+};
 
 use crate::{parse_raw_temperature_data, Temperature};
 
@@ -14,7 +24,7 @@ pub struct ReadSessionInformation {
 #[derive(Debug, PartialEq, DekuRead)]
 pub struct ReadLogs {
     pub sequence_number: u32,
-    #[deku(reader = "parse_raw_temperature_data(deku::rest)")]
+    #[deku(reader = "parse_raw_temperature_data(deku::reader, BitSize(8*13))")]
     pub temperatures: [Temperature; 8],
     pub virtual_sensors_and_state: [u8; 7],
 }
@@ -42,22 +52,17 @@ pub struct Response {
     pub message: ResponseMessage,
 }
 
-impl DekuWrite for Response {
-    fn write(
-        &self,
-        _: &mut deku::bitvec::BitVec<u8, deku::bitvec::Msb0>,
-        _: (),
-    ) -> Result<(), DekuError> {
-        Err(DekuError::Unexpected("Not implimented".to_string()))
+impl DekuWriter for Response {
+    fn to_writer<W: Write + Seek>(&self, _: &mut Writer<W>, _: ()) -> Result<(), DekuError> {
+        Err(DekuError::Parse(Cow::from("Not implimented".to_string())))
     }
 }
 
 #[test]
 fn test_parse_read_session_information_response() {
     let data = vec![202, 254, 188, 168, 3, 1, 6, 188, 254, 245, 34, 136, 19];
-    let (extra, message) = Response::from_bytes((data.as_slice(), 0)).unwrap();
-    dbg!(message);
-    dbg!(extra);
+    let (_extra, _message) = Response::from_bytes((data.as_slice(), 0)).unwrap();
+    //TODO: Finish
 }
 
 #[test]
