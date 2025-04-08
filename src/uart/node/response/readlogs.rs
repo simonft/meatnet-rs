@@ -7,7 +7,10 @@ use deku::ctx::BitSize;
 use deku::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::{parse_raw_temperature_data, temperature::Temperature, SerialNumber};
+use crate::{
+    common_types::SerialNumber,
+    temperature::{parse_raw_temperature_data, Temperature},
+};
 
 #[cfg(test)]
 use crate::uart::node::response::{Response, ResponseHeader, ResponseMessage};

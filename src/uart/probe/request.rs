@@ -6,7 +6,7 @@ use alloc::{format, vec::Vec};
 use crc::{Crc, CRC_16_IBM_3740};
 use deku::prelude::*;
 
-use crate::EncapsulatableMessage;
+use crate::uart::EncapsulatableMessage;
 
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
 pub struct SetProbeId {}

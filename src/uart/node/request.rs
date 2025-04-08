@@ -10,9 +10,10 @@ use deku::prelude::*;
 use rand::rngs::SmallRng;
 use rand::{RngCore as _, SeedableRng};
 
-use crate::{MacAddress, NetworkInformation, ProbeStatus, ProductType, SerialNumber};
+use crate::common_types::{MacAddress, NetworkInformation, ProductType, SerialNumber};
 
-use crate::EncapsulatableMessage;
+use crate::probe_status::ProbeStatus;
+use crate::uart::EncapsulatableMessage;
 
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
 pub struct SetProbeId {}

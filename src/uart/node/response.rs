@@ -5,10 +5,10 @@ use alloc::vec;
 use alloc::{format, vec::Vec};
 use deku::prelude::*;
 
-use crate::SerialNumber;
-
 mod readlogs;
 pub use readlogs::ReadLogs;
+
+use crate::common_types::SerialNumber;
 
 #[derive(Debug, PartialEq, DekuRead)]
 struct SetProbeId {}
