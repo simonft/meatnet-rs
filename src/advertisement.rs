@@ -1,9 +1,9 @@
 use alloc::format;
-use deku::{ctx::BitSize, prelude::*};
+use deku::prelude::*;
 
 use crate::{
     common_types::{BatteryStatus, Color, Mode, NetworkInformation, ProductType, SerialNumber},
-    temperature::{parse_raw_temperature_data, Temperature},
+    temperature::Temperature,
 };
 
 #[cfg(test)]
@@ -18,7 +18,6 @@ use pretty_assertions::assert_eq;
 pub struct ManufacturerSpecificData {
     pub product_type: ProductType,
     pub probe_serial_number: SerialNumber,
-    #[deku(reader = "parse_raw_temperature_data(deku::reader, BitSize(8*13))")]
     pub temperatures: [Temperature; 8],
     #[deku(bits = "3")]
     pub probe_id: u8,

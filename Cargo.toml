@@ -11,7 +11,7 @@ bitvec = { version = "1.0.1", default-features = false, features = [
     "alloc",
 ] }
 crc = "3.3.0"
-deku = { version = "0.18.1", default-features = false, features = [
+deku = { version = "0.19.1", default-features = false, features = [
     "alloc",
     "bits",
 ] }

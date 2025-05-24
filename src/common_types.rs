@@ -1,7 +1,8 @@
-use alloc::{format, vec::Vec};
+use alloc::format;
 use deku::prelude::*;
 use serde::{Deserialize, Serialize};
 
+#[repr(u8)]
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
 #[deku(id_type = "u8")]
 pub enum Hops {
@@ -16,6 +17,7 @@ pub struct NetworkInformation {
     pub hop_count: Hops,
 }
 
+#[repr(u8)]
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
 #[deku(bits = "2", id_type = "u8")]
 pub enum PredictionMode {
@@ -25,6 +27,7 @@ pub enum PredictionMode {
     Reserved,
 }
 
+#[repr(u8)]
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
 #[deku(bits = "2", id_type = "u8")]
 pub enum PredictionType {
@@ -34,6 +37,7 @@ pub enum PredictionType {
     Reserved,
 }
 
+#[repr(u8)]
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
 #[deku(bits = "4", id_type = "u8")]
 pub enum PredictionState {
@@ -55,6 +59,7 @@ pub enum PredictionState {
     Unknown,
 }
 
+#[repr(u8)]
 #[derive(Debug, PartialEq, DekuRead, Clone)]
 #[deku(id_type = "u8", bits = "2")]
 pub enum Mode {
@@ -64,6 +69,7 @@ pub enum Mode {
     Errored,
 }
 
+#[repr(u8)]
 #[derive(Debug, PartialEq, DekuRead)]
 #[deku(id_type = "u8", bits = "3")]
 pub enum Color {
@@ -77,6 +83,7 @@ pub enum Color {
     Reserved7,
 }
 
+#[repr(u8)]
 #[derive(Debug, PartialEq, DekuRead)]
 #[deku(id_type = "u8", bits = "1")]
 pub enum BatteryStatus {
@@ -84,6 +91,7 @@ pub enum BatteryStatus {
     LowBattery,
 }
 
+#[repr(u8)]
 #[derive(Debug, PartialEq, DekuRead, DekuWrite, Clone)]
 #[deku(id_type = "u8")]
 pub enum ProductType {

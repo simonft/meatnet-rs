@@ -1,8 +1,8 @@
 extern crate alloc;
 
+use alloc::format;
 #[cfg(test)]
 use alloc::vec;
-use alloc::{format, vec::Vec};
 use deku::prelude::*;
 
 mod readlogs;

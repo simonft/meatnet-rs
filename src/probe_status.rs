@@ -1,10 +1,9 @@
 use alloc::format;
-use deku::ctx::BitSize;
 use deku::prelude::*;
 
 use crate::{
     common_types::{BatteryStatus, Color, Mode},
-    temperature::{parse_raw_temperature_data, Temperature},
+    temperature::Temperature,
 };
 
 #[derive(Debug, PartialEq, DekuRead)]
@@ -13,7 +12,6 @@ pub struct ProbeStatus {
     pub log_start: u32,
     #[deku(endian = "little")]
     pub log_end: u32,
-    #[deku(reader = "parse_raw_temperature_data(deku::reader, BitSize(8*13))")]
     temperatures: [Temperature; 8],
     #[deku(bits = "3")]
     pub probe_id: u8,

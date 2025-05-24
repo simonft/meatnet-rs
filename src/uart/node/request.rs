@@ -61,6 +61,7 @@ impl EncapsulatableMessage for ReadLogs {
     }
 }
 
+#[repr(u8)]
 #[derive(Debug, PartialEq, DekuWrite, DekuRead)]
 #[deku(id_type = "u8")]
 pub enum Direction {

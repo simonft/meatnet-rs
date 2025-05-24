@@ -5,12 +5,11 @@ use alloc::format;
 use alloc::vec;
 use alloc::{borrow::Cow, string::ToString};
 use deku::{
-    ctx::BitSize,
     no_std_io::{Seek, Write},
     prelude::*,
 };
 
-use crate::temperature::{parse_raw_temperature_data, Temperature};
+use crate::temperature::Temperature;
 
 #[derive(Debug, PartialEq, DekuRead)]
 pub struct SetProbeId {}
@@ -24,7 +23,6 @@ pub struct ReadSessionInformation {
 #[derive(Debug, PartialEq, DekuRead)]
 pub struct ReadLogs {
     pub sequence_number: u32,
-    #[deku(reader = "parse_raw_temperature_data(deku::reader, BitSize(8*13))")]
     pub temperatures: [Temperature; 8],
     pub virtual_sensors_and_state: [u8; 7],
 }
