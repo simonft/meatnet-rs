@@ -61,7 +61,7 @@ pub enum PredictionState {
 
 #[repr(u8)]
 #[derive(Debug, PartialEq, DekuRead, Clone)]
-#[deku(id_type = "u8", bits = "2")]
+#[deku(id_type = "u8", bits = "2", bit_order = "lsb")]
 pub enum Mode {
     Normal = 0,
     InstantRead,
@@ -71,7 +71,7 @@ pub enum Mode {
 
 #[repr(u8)]
 #[derive(Debug, PartialEq, DekuRead)]
-#[deku(id_type = "u8", bits = "3")]
+#[deku(id_type = "u8", bits = "3", bit_order = "lsb")]
 pub enum Color {
     Yellow = 0,
     Grey,
@@ -85,7 +85,7 @@ pub enum Color {
 
 #[repr(u8)]
 #[derive(Debug, PartialEq, DekuRead)]
-#[deku(id_type = "u8", bits = "1")]
+#[deku(id_type = "u8", bits = "1", bit_order = "lsb")]
 pub enum BatteryStatus {
     Ok = 0,
     LowBattery,

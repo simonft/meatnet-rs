@@ -13,18 +13,17 @@ pub struct ProbeStatus {
     #[deku(endian = "little")]
     pub log_end: u32,
     temperatures: [Temperature; 8],
-    #[deku(bits = "3")]
-    pub probe_id: u8,
-    pub color: Color,
     pub mode: Mode,
-    #[deku(bits = "2")]
-    virtual_ambient_sensor: u8,
-    #[deku(bits = "2")]
-    virtual_surface_sensor: u8,
-    #[deku(bits = "3")]
-    virtual_core_sensor: u8,
-    #[deku(pad_bytes_after = "25")]
+    pub color: Color,
+    #[deku(bits = "3", bit_order = "lsb")]
+    pub probe_id: u8,
     pub battery_status: BatteryStatus,
+    #[deku(bits = "3", bit_order = "lsb")]
+    pub virtual_core_sensor: u8,
+    #[deku(bits = "2", bit_order = "lsb")]
+    pub virtual_surface_sensor: u8,
+    #[deku(bits = "2", bit_order = "lsb", pad_bytes_after = "24")]
+    pub virtual_ambient_sensor: u8,
 }
 
 impl ProbeStatus {
@@ -69,10 +68,10 @@ fn test_probe_status() {
             probe_id: 0,
             color: Color::Yellow,
             mode: Mode::Normal,
-            virtual_ambient_sensor: 3,
-            virtual_surface_sensor: 0,
-            virtual_core_sensor: 0,
             battery_status: BatteryStatus::Ok,
+            virtual_core_sensor: 0,
+            virtual_surface_sensor: 0,
+            virtual_ambient_sensor: 3,
         }
     );
 }

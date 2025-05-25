@@ -19,17 +19,17 @@ pub struct ManufacturerSpecificData {
     pub product_type: ProductType,
     pub probe_serial_number: SerialNumber,
     pub temperatures: [Temperature; 8],
-    #[deku(bits = "3")]
-    pub probe_id: u8,
-    pub color: Color,
     pub mode: Mode,
-    #[deku(bits = "2")]
-    virtual_ambient_sensor: u8,
-    #[deku(bits = "2")]
-    virtual_surface_sensor: u8,
-    #[deku(bits = "3")]
-    virtual_core_sensor: u8,
+    pub color: Color,
+    #[deku(bits = "3", bit_order = "lsb")]
+    pub probe_id: u8,
     pub battery_status: BatteryStatus,
+    #[deku(bits = "3", bit_order = "lsb")]
+    pub virtual_core_sensor: u8,
+    #[deku(bits = "2", bit_order = "lsb")]
+    pub virtual_surface_sensor: u8,
+    #[deku(bits = "2", bit_order = "lsb")]
+    pub virtual_ambient_sensor: u8,
     #[deku(
         cond = "product_type == &ProductType::MeatNetRepeater",
         default = "None",
